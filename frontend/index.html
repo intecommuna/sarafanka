@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Sarafanka — хаб мини-приложений для автоматизации, анализа и полезных сервисов."
+    />
+    <title>Sarafanka</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./src/style.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="site-header">
+        <div class="container header-inner">
+          <a class="brand" href="#top" aria-label="Sarafanka home">
+            <span class="brand-mark">S</span>
+            <span class="brand-text">Sarafanka</span>
+          </a>
+
+          <nav class="main-nav" aria-label="Основное меню">
+            <button
+              class="nav-toggle"
+              type="button"
+              aria-expanded="false"
+              aria-controls="nav-menu"
+              aria-label="Открыть меню"
+            >
+              <span></span>
+              <span></span>
+              <span></span>
+            </button>
+
+            <ul id="nav-menu" class="nav-menu">
+              <li><a href="#about">О проекте</a></li>
+              <li><a href="#tools">Инструменты</a></li>
+              <li><a href="#contacts">Контакты</a></li>
+            </ul>
+          </nav>
+        </div>
+      </header>
+
+      <main id="top">
+        <section class="hero">
+          <div class="container hero-inner">
+            <div class="hero-copy">
+              <span class="eyebrow">Мини-приложения для повседневных задач</span>
+              <h1>Лаборатория полезных автоматизаций.</h1>
+              <p>
+                Sarafanka собирает небольшие интерфейсы и сервисы, которые помогают
+                быстро проверять данные, обрабатывать рутину и превращать сложные
+                процессы в понятные инструменты.
+              </p>
+              <div class="hero-actions">
+                <a class="button primary" href="#tools">Смотреть инструменты</a>
+                <a class="button ghost" href="#about">Подробнее</a>
+              </div>
+            </div>
+
+            <div class="hero-panel" aria-label="Панель статуса проекта">
+              <div class="status-card">
+                <span class="status-label">Статус</span>
+                <strong>Hub in progress</strong>
+                <ul>
+                  <li>API utilities</li>
+                  <li>Automation tools</li>
+                  <li>Telegram integrations</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="tools section" id="tools">
+          <div class="container">
+            <div class="section-heading">
+              <span class="eyebrow">Инструменты</span>
+              <h2>Полезный набор для работы и анализа</h2>
+            </div>
+
+            <div class="tool-grid">
+              <article class="tool-card">
+                <div class="tool-header">
+                  <span class="tool-icon">API</span>
+                  <span class="badge soon">скоро</span>
+                </div>
+                <h3>API Tester</h3>
+                <p>Проверка запросов, заголовков и быстрый просмотр ответов в одном окне.</p>
+              </article>
+
+              <article class="tool-card">
+                <div class="tool-header">
+                  <span class="tool-icon">AV</span>
+                  <span class="badge soon">скоро</span>
+                </div>
+                <h3>Avito Parser</h3>
+                <p>Сбор и структурирование объявлений для анализа рынка и сравнения предложений.</p>
+              </article>
+
+              <article class="tool-card">
+                <div class="tool-header">
+                  <span class="tool-icon">TG</span>
+                  <span class="badge soon">скоро</span>
+                </div>
+                <h3>Telegram Bot</h3>
+                <p>Управление сценариями, уведомлениями и командной логикой через бота.</p>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section class="about section" id="about">
+          <div class="container about-inner">
+            <div class="section-heading left">
+              <span class="eyebrow">О проекте</span>
+              <h2>Простые инструменты для сложной рутины</h2>
+            </div>
+            <p>
+              Sarafanka — это хаб мини-приложений, созданный для задач, где важны
+              скорость, понятный интерфейс и практичность. Мы делаем небольшие сервисы,
+              которые помогают автоматизировать проверки, анализ и коммуникации без лишнего
+              перегруза.
+            </p>
+          </div>
+        </section>
+      </main>
+
+      <footer class="site-footer" id="contacts">
+        <div class="container footer-inner">
+          <div>
+            <h3>Sarafanka</h3>
+            <p>Хаб мини-приложений для эффективной работы.</p>
+          </div>
+
+          <div class="contact-links">
+            <a href="mailto:hello@sarafanka.dev">hello@sarafanka.dev</a>
+            <a href="https://t.me/sarafanka" target="_blank" rel="noreferrer">Telegram</a>
+          </div>
+
+          <p class="copyright">© <span id="year"></span> Sarafanka</p>
+        </div>
+      </footer>
+    </div>
+
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>
