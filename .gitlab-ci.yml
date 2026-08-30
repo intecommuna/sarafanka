@@ -1,0 +1,26 @@
+stages:
+  - deploy
+
+deploy:
+  stage: deploy
+  image: ubuntu:latest
+  before_script:
+    - apt-get update -qq
+    - apt-get install -y openssh-client
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | ssh-add -
+    - mkdir -p ~/.ssh && chmod 700 ~/.ssh
+    - ssh-keyscan $SERVER_HOST >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+  script:
+    - |
+      ssh $SERVER_USER@$SERVER_HOST "
+        set -e
+        cd /opt/sarafanka
+        git pull origin main
+        cd frontend && npm install && npm run build
+        cd ../backend && go build -o app .
+        sudo systemctl restart sarafanka
+      "
+  only:
+    - main
