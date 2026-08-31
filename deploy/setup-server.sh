@@ -2,53 +2,44 @@
 set -e
 
 GITHUB_USER="intecommuna"
-REPO_SSH="git@github.com:${GITHUB_USER}/sarafanka.git"
+REPO="git@github.com:intecommuna/sarafanka.git"
 PROJECT_DIR="/opt/sarafanka"
 
-echo ">>> Обновление системы и установка зависимостей..."
-sudo apt update -qq
-sudo apt install -y git nginx nodejs npm golang
+apt update -qq
+apt install -y git curl ufw fail2ban certbot docker.io docker-compose-v2
 
-echo ">>> Клонирование репозитория в ${PROJECT_DIR}..."
-if [ ! -d "${PROJECT_DIR}" ]; then
-    sudo git clone ${REPO_SSH} ${PROJECT_DIR}
-    sudo chown -R $USER:$USER ${PROJECT_DIR}
+systemctl enable --now docker
+
+ufw allow 22/tcp
+ufw allow 80/tcp
+ufw allow 443/tcp
+ufw allow 443/udp
+ufw --force enable
+
+mkdir -p /var/www/certbot
+
+if [ ! -d "${PROJECT_DIR}/.git" ]; then
+    git clone "${REPO}" "${PROJECT_DIR}"
 fi
 
-echo ">>> Сборка frontend..."
-cd ${PROJECT_DIR}/frontend
-npm install
-npm run build
+cd "${PROJECT_DIR}"
 
-echo ">>> Сборка backend..."
-cd ${PROJECT_DIR}/backend
-go build -o app .
+git remote set-url origin "${REPO}" || true
 
-echo ">>> Настройка systemd-сервиса sarafanka..."
-sudo cp ${PROJECT_DIR}/deploy/sarafanka.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now sarafanka
+echo ">>> Выпуск SSL-сертификата (если доступен порт 80)"
+certbot certonly --standalone --non-interactive --agree-tos \
+  -m intecommuna@gmail.com \
+  -d sarafanka.su -d www.sarafanka.su || echo "WARN: certificate generation failed; check DNS / ports"
 
-echo ">>> Настройка Nginx..."
-sudo cp ${PROJECT_DIR}/deploy/nginx-sarafanka.conf /etc/nginx/sites-available/sarafanka
-sudo ln -sf /etc/nginx/sites-available/sarafanka /etc/nginx/sites-enabled/sarafanka
-sudo rm -f /etc/nginx/sites-enabled/default
-sudo nginx -t && sudo systemctl reload nginx
+echo ">>> Запуск Docker-сервисов"
+docker compose up -d --build
 
 echo ""
 echo "========================================="
-echo "✅ Базовая настройка завершена"
+echo "✅ Docker-сервер готов"
 echo ""
 echo "Ручные шаги:"
-echo "  1. DNS: A-запись sarafanka.su → 72.56.22.16 у регистратора"
-echo "  2. На этом сервере:"
-echo "     ssh-keygen -t ed25519 -C 'sarafanka-server' -f ~/.ssh/id_ed25519 -N ''"
-echo "     cat ~/.ssh/id_ed25519.pub"
-echo "     → добавь ключ в GitHub: Settings → SSH and GPG keys"
-echo "  3. Проверь: cd /opt/sarafanka && git pull (должно быть без пароля)"
-echo "  4. SSL: sudo certbot --nginx -d sarafanka.su"
-echo "  5. На локальной машине: добавь публичный ключ локального SSH-ключа"
-echo "     в ~/.ssh/authorized_keys на этом сервере (для GitHub Actions деплоя)"
-echo "  6. Для зеркала GitVerse:"
-echo "     git remote add gitverse git@gitverse.ru:ITcommuna/sarafanka.git"
+echo "  1. Серверный SSH-ключ: добавить в GitHub (Settings → SSH and GPG keys)"
+echo "  2. GitVerse зеркало: git remote add gitverse git@gitverse.ru:ITcommuna/sarafanka.git"
+echo "  3. Проверка логов: docker compose logs -f"
 echo "========================================="

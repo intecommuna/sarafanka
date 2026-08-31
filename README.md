@@ -50,7 +50,6 @@ npm run build
 
 - `origin` = GitHub
 - `gitverse` = GitVerse
-- `gitlab` = архив
 
 Алиас:
 
