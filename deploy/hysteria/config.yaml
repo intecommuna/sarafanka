@@ -1,0 +1,15 @@
+listen: :443
+
+tls:
+  cert: /etc/letsencrypt/live/sarafanka.su/fullchain.pem
+  key: /etc/letsencrypt/live/sarafanka.su/privkey.pem
+
+auth:
+  type: password
+  password: CHANGE_ME
+
+masquerade:
+  type: proxy
+  proxy:
+    url: https://sarafanka.su
+    rewriteHost: true

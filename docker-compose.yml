@@ -1,0 +1,43 @@
+services:
+  backend:
+    build: ./backend
+    container_name: sarafanka-backend
+    restart: unless-stopped
+    expose:
+      - "8080"
+
+  frontend:
+    build: ./frontend
+    container_name: sarafanka-frontend
+    restart: unless-stopped
+    expose:
+      - "80"
+
+  nginx:
+    image: nginx:alpine
+    container_name: sarafanka-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/www/certbot:/var/www/certbot:ro
+    depends_on:
+      - backend
+      - frontend
+
+  # Прокси-узел. Запускается вручную:
+  #   docker compose --profile manual up -d hysteria
+  hysteria:
+    profiles: ["manual"]
+    image: tobyxdd/hysteria:latest
+    container_name: sarafanka-hysteria
+    restart: unless-stopped
+    command: server
+    ports:
+      - "443:443/udp"
+    volumes:
+      - ./deploy/hysteria/config.yaml:/etc/hysteria.yaml:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
