@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -e
 
-GITLAB_USER="intecommuna"
-REPO_SSH="git@gitlab.com:${GITLAB_USER}/sarafanka.git"
+GITHUB_USER="intecommuna"
+REPO_SSH="git@github.com:${GITHUB_USER}/sarafanka.git"
 PROJECT_DIR="/opt/sarafanka"
 
 echo ">>> Обновление системы и установка зависимостей..."
@@ -44,9 +44,11 @@ echo "  1. DNS: A-запись sarafanka.su → 72.56.22.16 у регистра�
 echo "  2. На этом сервере:"
 echo "     ssh-keygen -t ed25519 -C 'sarafanka-server' -f ~/.ssh/id_ed25519 -N ''"
 echo "     cat ~/.ssh/id_ed25519.pub"
-echo "     → добавь ключ в GitLab: Settings → SSH Keys"
+echo "     → добавь ключ в GitHub: Settings → SSH and GPG keys"
 echo "  3. Проверь: cd /opt/sarafanka && git pull (должно быть без пароля)"
 echo "  4. SSL: sudo certbot --nginx -d sarafanka.su"
 echo "  5. На локальной машине: добавь публичный ключ локального SSH-ключа"
-echo "     в ~/.ssh/authorized_keys на этом сервере (для GitLab CI деплоя)"
+echo "     в ~/.ssh/authorized_keys на этом сервере (для GitHub Actions деплоя)"
+echo "  6. Для зеркала GitVerse:"
+echo "     git remote add gitverse git@gitverse.ru:ITcommuna/sarafanka.git"
 echo "========================================="

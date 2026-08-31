@@ -33,17 +33,32 @@ cd frontend
 npm run build
 ```
 
-## CI/CD
+## CI/CD и деплой
 
-Схема: `git push` → GitLab CI → SSH на VPS → `git pull` + сборка + restart сервиса.
+### Основной канал: GitHub Actions (.github/workflows/deploy.yml)
 
-### Переменные в GitLab (Settings → CI/CD → Variables)
+Секреты в GitHub: Settings → Secrets and variables → Actions:
+- `SSH_PRIVATE_KEY` — приватный ключ целиком
+- `SERVER_HOST=72.56.22.16`
+- `SERVER_USER=root`
 
-| Имя | Тип | Значение |
-|---|---|---|
-| SSH_PRIVATE_KEY | File, masked | Приватный SSH-ключ для доступа с GitLab-раннера на сервер |
-| SERVER_HOST | Variable | 72.56.22.16 |
-| SERVER_USER | Variable | Юзер на VPS (с правами sudo) |
+### Запасной канал: cron на сервере каждые 2 минуты
+
+Скрипт: `deploy/auto-deploy.sh`
+
+### Зеркалирование
+
+- `origin` = GitHub
+- `gitverse` = GitVerse
+- `gitlab` = архив
+
+Алиас:
+
+```bash
+git pushall
+```
+
+`git pushall` пушит в `origin` и `gitverse`.
 
 ### Первичная настройка сервера
 
@@ -51,13 +66,15 @@ npm run build
 bash deploy/setup-server.sh
 ```
 
+или через cloud-init-скрипт при создании VPS на Timeweb.
+
 ### Серверный SSH-ключ (для `git pull`)
 
 На VPS:
 
 ```bash
 ssh-keygen -t ed25519 -C "sarafanka-server"
-cat ~/.ssh/id_ed25519.pub   # → добавить в GitLab: Settings → SSH Keys
+cat ~/.ssh/id_ed25519.pub   # → добавить в GitHub: Settings → SSH and GPG keys
 ```
 
 ### Локальный деплой-ключ (для CI)
@@ -65,7 +82,7 @@ cat ~/.ssh/id_ed25519.pub   # → добавить в GitLab: Settings → SSH K
 ```bash
 ssh-keygen -t ed25519 -C "sarafanka-deploy" -f ~/.ssh/sarafanka_deploy
 cat ~/.ssh/sarafanka_deploy.pub        # → в ~/.ssh/authorized_keys на VPS
-cat ~/.ssh/sarafanka_deploy            # → в GitLab: SSH_PRIVATE_KEY (File)
+cat ~/.ssh/sarafanka_deploy            # → в GitHub: SSH_PRIVATE_KEY
 ```
 
 ### Запуск локально
