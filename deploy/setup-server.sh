@@ -15,6 +15,15 @@ if [ ! -d "${PROJECT_DIR}" ]; then
     sudo chown -R $USER:$USER ${PROJECT_DIR}
 fi
 
+echo ">>> Сборка frontend..."
+cd ${PROJECT_DIR}/frontend
+npm install
+npm run build
+
+echo ">>> Сборка backend..."
+cd ${PROJECT_DIR}/backend
+go build -o app .
+
 echo ">>> Настройка systemd-сервиса sarafanka..."
 sudo cp ${PROJECT_DIR}/deploy/sarafanka.service /etc/systemd/system/
 sudo systemctl daemon-reload
