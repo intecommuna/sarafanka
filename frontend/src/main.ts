@@ -25,20 +25,114 @@ const render = (page: () => Promise<string> | string) => {
 export const refreshHeader = () => {
   const header = document.querySelector<HTMLElement>('#site-header');
   if (!header) return;
-  header.innerHTML = `<div class="header-inner container">
-    <a class="brand" href="#/"><span class="brand-mark">С</span><span>Сарафанка</span></a>
-    <form class="search" id="search-form"><input id="header-search" placeholder="Найти объявление" aria-label="Поиск"><button aria-label="Искать">⌕</button></form>
-    <button class="menu-toggle" id="menu-toggle" type="button" aria-label="Открыть меню" aria-expanded="false"><span></span><span></span><span></span></button>
-    <nav id="main-nav"><a href="#/catalog">Каталог</a><a href="#/news">Новости</a>${currentUser ? `<a href="#/my">Мои объявления</a>${currentUser.role === 'admin' ? '<a href="#/admin">Админка</a>' : ''}${['admin','moderator'].includes(currentUser.role) ? '<a class="nav-add" href="#/news/new">+ Новость</a>' : ''}<span class="user-name">${escapeHtml(currentUser.name)}</span><button class="link-button" id="logout">Выйти</button>` : '<a href="#/login">Войти</a><a class="nav-add" href="#/register">Регистрация</a>'}<button class="theme-toggle" id="theme-toggle" type="button" aria-label="Переключить тему">${initialTheme === 'dark' ? '☀️' : '🌙'}</button></nav>
-    <a class="button primary compact" href="${currentUser ? '#/ad/new' : '#/login'}">+ Объявление</a>
-  </div>`;
-  header.querySelector<HTMLFormElement>('#search-form')?.addEventListener('submit', (event) => { event.preventDefault(); location.hash = `#/catalog?q=${encodeURIComponent(header.querySelector<HTMLInputElement>('#header-search')!.value)}&type=all`; });
-  header.querySelector('#logout')?.addEventListener('click', () => { localStorage.removeItem('token'); currentUser = null; refreshHeader(); location.hash = '#/'; });
+
+  const isLoggedIn = Boolean(currentUser);
+  const addButton = isLoggedIn
+    ? '<a class="button primary compact" href="#/ad/new">+ Объявление</a>'
+    : '<a class="header-link" href="#/login">Войти</a><a class="header-link header-link-alt" href="#/register">Регистрация</a>';
+
+  const userBlock = isLoggedIn
+    ? `<span class="user-name">${escapeHtml(currentUser!.name)}</span><button class="link-button" id="logout" type="button">Выйти</button>`
+    : '';
+
+  const navLinks = currentUser
+    ? `<a href="#/catalog">Каталог</a><a href="#/news">Новости</a><a href="#/my">Мои объявления</a>${currentUser.role === 'admin' ? '<a href="#/admin">Админка</a>' : ''}${['admin','moderator'].includes(currentUser.role) ? '<a class="nav-add" href="#/news/new">+ Новость</a>' : ''}`
+    : `<a href="#/catalog">Каталог</a><a href="#/news">Новости</a>`;
+
+  header.innerHTML = `
+    <div class="header-inner container">
+      <div class="header-left">
+        <a class="brand" href="#/"><span class="brand-mark">С</span><span>Сарафанка</span></a>
+        <button class="menu-toggle" id="menu-toggle" type="button" aria-label="Открыть меню" aria-expanded="false"><span></span><span></span><span></span></button>
+        <nav class="main-nav" id="main-nav">${navLinks}</nav>
+      </div>
+      <div class="header-actions">
+        ${addButton}
+        ${userBlock}
+        <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Переключить тему">${initialTheme === 'dark' ? '☀️' : '🌙'}</button>
+        <button class="search-toggle" id="search-toggle" type="button" aria-label="Открыть поиск" aria-expanded="false">🔍</button>
+      </div>
+    </div>
+    <div class="search-panel" id="search-panel" aria-label="Поиск объявлений">
+      <form class="search-panel-form" id="search-panel-form">
+        <input id="header-search" type="search" placeholder="Поиск объявлений" aria-label="Поиск объявлений" />
+        <button type="submit">Найти</button>
+      </form>
+    </div>
+  `;
+
+  const searchToggle = header.querySelector<HTMLButtonElement>('#search-toggle');
+  const searchPanel = header.querySelector<HTMLElement>('#search-panel');
+  const searchInput = header.querySelector<HTMLInputElement>('#header-search');
+  const searchForm = header.querySelector<HTMLFormElement>('#search-panel-form');
+
+  const closeSearchPanel = () => {
+    searchPanel?.classList.remove('open');
+    searchToggle?.classList.remove('active');
+    searchToggle?.setAttribute('aria-expanded', 'false');
+  };
+
+  const openSearchPanel = () => {
+    searchPanel?.classList.add('open');
+    searchToggle?.classList.add('active');
+    searchToggle?.setAttribute('aria-expanded', 'true');
+    requestAnimationFrame(() => searchInput?.focus());
+  };
+
+  if (!header.dataset.searchBound) {
+    document.addEventListener('click', (event) => {
+      const target = event.target as Node;
+      if (!searchPanel || !searchToggle) return;
+      if (!searchPanel.contains(target) && !searchToggle.contains(target)) closeSearchPanel();
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') closeSearchPanel();
+    });
+
+    header.dataset.searchBound = 'true';
+  }
+
+  searchToggle?.addEventListener('click', (event) => {
+    event.stopPropagation();
+    if (searchPanel?.classList.contains('open')) {
+      closeSearchPanel();
+      return;
+    }
+    openSearchPanel();
+  });
+
+  searchForm?.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const query = searchInput?.value.trim() ?? '';
+    if (!query) {
+      closeSearchPanel();
+      return;
+    }
+    location.hash = `#/catalog?q=${encodeURIComponent(query)}&type=all`;
+    closeSearchPanel();
+  });
+
+  header.querySelector('#logout')?.addEventListener('click', () => {
+    localStorage.removeItem('token');
+    currentUser = null;
+    refreshHeader();
+    location.hash = '#/';
+  });
+
   header.querySelector('#theme-toggle')?.addEventListener('click', () => applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'));
+
   const menuToggle = header.querySelector<HTMLButtonElement>('#menu-toggle');
   const nav = header.querySelector<HTMLElement>('#main-nav');
-  menuToggle?.addEventListener('click', () => { const isOpen = nav?.classList.toggle('is-open') ?? false; menuToggle.setAttribute('aria-expanded', String(isOpen)); });
-  nav?.querySelectorAll('a').forEach((link) => link.addEventListener('click', () => { nav.classList.remove('is-open'); menuToggle?.setAttribute('aria-expanded', 'false'); }));
+  menuToggle?.addEventListener('click', () => {
+    const isOpen = nav?.classList.toggle('is-open') ?? false;
+    menuToggle.setAttribute('aria-expanded', String(isOpen));
+  });
+
+  nav?.querySelectorAll('a').forEach((link) => link.addEventListener('click', () => {
+    nav.classList.remove('is-open');
+    menuToggle?.setAttribute('aria-expanded', 'false');
+  }));
 };
 
 export const escapeHtml = (value: string) => value.replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]!));
