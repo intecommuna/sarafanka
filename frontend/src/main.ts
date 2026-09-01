@@ -28,19 +28,20 @@ type ExtendedWindow = Window & {
 };
 
 const refreshNav = () => {
-  const header = document.querySelector<HTMLElement>('header');
+  const header = document.querySelector<HTMLElement>('#site-header');
+  const inEl = header?.querySelector<HTMLElement>('.hdr-in');
   const nav = document.getElementById('main-nav');
   const burger = document.getElementById('menu-toggle');
 
-  if (!header || !nav || !burger) return;
+  if (!header || !inEl || !nav || !burger) return;
 
-  nav.classList.remove('collapsed');
-  burger.style.display = 'none';
+  nav.classList.remove('hidden');
+  burger.hidden = true;
 
   requestAnimationFrame(() => {
-    if (header.scrollWidth > header.clientWidth + 1) {
-      nav.classList.add('collapsed');
-      burger.style.display = '';
+    if (inEl.scrollWidth > inEl.clientWidth + 1) {
+      nav.classList.add('hidden');
+      burger.hidden = false;
     }
   });
 };
@@ -49,91 +50,133 @@ export const refreshHeader = () => {
   const header = document.querySelector<HTMLElement>('#site-header');
   if (!header) return;
 
+  header.className = 'hdr';
+
   const isLoggedIn = Boolean(currentUser);
-  const addButton = isLoggedIn
-    ? '<a class="button primary compact" href="#/ad/new">+ Объявление</a>'
-    : '<a class="header-link" href="#/login">Войти</a><a class="header-link header-link-alt" href="#/register">Регистрация</a>';
-
-  const userBlock = isLoggedIn
-    ? `<span class="user-name">${escapeHtml(currentUser!.name)}</span><button class="link-button" id="logout" type="button">Выйти</button>`
-    : '';
-
   const navLinks = currentUser
-    ? `<a href="#/catalog">Каталог</a><a href="#/news">Новости</a><a href="#/my">Мои объявления</a>${currentUser.role === 'admin' ? '<a href="#/admin">Админка</a>' : ''}${['admin','moderator'].includes(currentUser.role) ? '<a class="nav-add" href="#/news/new">+ Новость</a>' : ''}`
-    : `<a href="#/catalog">Каталог</a><a href="#/news">Новости</a>`;
+    ? `<a href="#/catalog">Каталог</a><a href="#/news">Новости</a><a href="#/my">Мои объявления</a>${currentUser.role === 'admin' ? '<a href="#/admin">Админка</a>' : ''}`
+    : '<a href="#/catalog">Каталог</a><a href="#/news">Новости</a>';
 
-  header.innerHTML = `
-    <div class="header-inner container">
-      <div class="header-left">
-        <a class="brand" href="#/"><span class="brand-mark">С</span><span>Сарафанка</span></a>
-        <button class="menu-toggle" id="menu-toggle" type="button" aria-label="Открыть меню" aria-expanded="false"><span></span><span></span><span></span></button>
-        <nav class="main-nav" id="main-nav">${navLinks}</nav>
-      </div>
-      <div class="header-actions">
-        ${addButton}
-        ${userBlock}
-        <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Переключить тему">${initialTheme === 'dark' ? '☀️' : '🌙'}</button>
-        <button class="search-toggle" id="search-toggle" type="button" aria-label="Открыть поиск" aria-expanded="false">🔍</button>
-      </div>
-    </div>
-    <div class="search-panel" id="search-panel" aria-label="Поиск объявлений">
-      <form class="search-panel-form" id="search-panel-form">
-        <input id="header-search" type="search" placeholder="Поиск объявлений" aria-label="Поиск объявлений" />
-        <button type="submit">Найти</button>
-      </form>
-    </div>
+  const authLinks = isLoggedIn
+    ? `<span class="uname">${escapeHtml(currentUser!.name)}</span><button class="ibtn" id="logout" type="button">Выйти</button>`
+    : '<a href="#/login">Войти</a><a href="#/register">Регистрация</a>';
+
+  const mobileLinks = `
+    <a href="#/catalog">Каталог</a>
+    <a href="#/news">Новости</a>
+    ${currentUser ? '<a href="#/my">Мои объявления</a>' : ''}
+    ${currentUser && currentUser.role === 'admin' ? '<a href="#/admin">Админка</a>' : ''}
+    ${currentUser ? '<a href="#/ad/new">+ Объявление</a>' : '<a href="#/login">Войти</a><a href="#/register">Регистрация</a>'}
+    ${currentUser ? '<button class="mnav-logout" type="button" id="mnav-logout">Выйти</button>' : ''}
   `;
 
+  header.innerHTML = `
+    <div class="hdr-in">
+      <a class="logo" href="#/">Сарафанка</a>
+      <nav class="nav" id="main-nav">${navLinks}</nav>
+      <div class="acts">
+        ${isLoggedIn ? '<a class="btn btn-sm" href="#/ad/new">+ Объявление</a>' : ''}
+        ${authLinks}
+        <button class="ibtn" id="theme-toggle" type="button" aria-label="Переключить тему">${document.documentElement.getAttribute('data-theme') === 'dark' ? '☀️' : '🌙'}</button>
+        <button class="ibtn" id="search-toggle" type="button" aria-label="Открыть поиск">🔍</button>
+        <button class="ibtn burger" id="menu-toggle" type="button" aria-label="Открыть меню" hidden>☰</button>
+      </div>
+    </div>
+    <div class="search-panel" id="search-panel">
+      <input id="search-input" type="search" placeholder="Найти объявление" />
+      <button class="btn btn-sm" id="search-go" type="button">Найти</button>
+    </div>
+    <nav class="mnav" id="mnav">${mobileLinks}</nav>
+  `;
+
+  const themeToggle = header.querySelector<HTMLButtonElement>('#theme-toggle');
   const searchToggle = header.querySelector<HTMLButtonElement>('#search-toggle');
   const searchPanel = header.querySelector<HTMLElement>('#search-panel');
-  const searchInput = header.querySelector<HTMLInputElement>('#header-search');
-  const searchForm = header.querySelector<HTMLFormElement>('#search-panel-form');
+  const searchInput = header.querySelector<HTMLInputElement>('#search-input');
+  const searchGo = header.querySelector<HTMLButtonElement>('#search-go');
+  const mnav = header.querySelector<HTMLElement>('#mnav');
+  const burger = header.querySelector<HTMLButtonElement>('#menu-toggle');
+  const nav = header.querySelector<HTMLElement>('#main-nav');
 
-  const closeSearchPanel = () => {
-    searchPanel?.classList.remove('open');
-    searchToggle?.classList.remove('active');
-    searchToggle?.setAttribute('aria-expanded', 'false');
+  const closeMenu = () => {
+    mnav?.classList.remove('open');
+    burger?.setAttribute('aria-expanded', 'false');
   };
 
-  const openSearchPanel = () => {
+  const closeSearch = () => {
+    searchPanel?.classList.remove('open');
+  };
+
+  const openSearch = () => {
     searchPanel?.classList.add('open');
-    searchToggle?.classList.add('active');
-    searchToggle?.setAttribute('aria-expanded', 'true');
     requestAnimationFrame(() => searchInput?.focus());
   };
 
-  if (!header.dataset.searchBound) {
-    document.addEventListener('click', (event) => {
-      const target = event.target as Node;
-      if (!searchPanel || !searchToggle) return;
-      if (!searchPanel.contains(target) && !searchToggle.contains(target)) closeSearchPanel();
-    });
+  const handleDocumentClick = (event: MouseEvent) => {
+    const target = event.target as Node;
+    if (mnav && burger && !mnav.contains(target) && !burger.contains(target)) closeMenu();
+    if (searchPanel && searchToggle && !searchPanel.contains(target) && !searchToggle.contains(target)) closeSearch();
+  };
 
-    document.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape') closeSearchPanel();
-    });
+  const handleKeyDown = (event: KeyboardEvent) => {
+    if (event.key === 'Escape') {
+      closeMenu();
+      closeSearch();
+    }
+  };
 
-    header.dataset.searchBound = 'true';
+  if (!(header as HTMLElement & { __headerBound?: boolean }).__headerBound) {
+    document.addEventListener('click', handleDocumentClick);
+    document.addEventListener('keydown', handleKeyDown);
+    (header as HTMLElement & { __headerBound?: boolean }).__headerBound = true;
   }
+
+  themeToggle?.addEventListener('click', () => {
+    const nextTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    applyTheme(nextTheme);
+    refreshHeader();
+  });
 
   searchToggle?.addEventListener('click', (event) => {
     event.stopPropagation();
     if (searchPanel?.classList.contains('open')) {
-      closeSearchPanel();
+      closeSearch();
       return;
     }
-    openSearchPanel();
+    openSearch();
   });
 
-  searchForm?.addEventListener('submit', (event) => {
-    event.preventDefault();
-    const query = searchInput?.value.trim() ?? '';
-    if (!query) {
-      closeSearchPanel();
+  searchGo?.addEventListener('click', () => {
+    const value = searchInput?.value.trim() ?? '';
+    if (!value) {
+      closeSearch();
       return;
     }
-    location.hash = `#/catalog?q=${encodeURIComponent(query)}&type=all`;
-    closeSearchPanel();
+    location.hash = `#/catalog?q=${encodeURIComponent(value)}`;
+    closeSearch();
+  });
+
+  searchInput?.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter') return;
+    const value = searchInput.value.trim();
+    if (!value) {
+      closeSearch();
+      return;
+    }
+    location.hash = `#/catalog?q=${encodeURIComponent(value)}`;
+    closeSearch();
+  });
+
+  burger?.addEventListener('click', (event) => {
+    event.stopPropagation();
+    const isOpen = mnav?.classList.toggle('open');
+    burger.setAttribute('aria-expanded', String(Boolean(isOpen)));
+  });
+
+  mnav?.querySelectorAll('a, button').forEach((link) => {
+    link.addEventListener('click', () => {
+      closeMenu();
+    });
   });
 
   header.querySelector('#logout')?.addEventListener('click', () => {
@@ -143,40 +186,25 @@ export const refreshHeader = () => {
     location.hash = '#/';
   });
 
-  header.querySelector('#theme-toggle')?.addEventListener('click', () => applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'));
-
-  const menuToggle = header.querySelector<HTMLButtonElement>('#menu-toggle');
-  const nav = header.querySelector<HTMLElement>('#main-nav');
-
-  menuToggle?.addEventListener('click', () => {
-    if (!nav?.classList.contains('collapsed')) return;
-    const isOpen = nav.classList.toggle('open');
-    menuToggle.setAttribute('aria-expanded', String(isOpen));
+  header.querySelector('#mnav-logout')?.addEventListener('click', () => {
+    localStorage.removeItem('token');
+    currentUser = null;
+    refreshHeader();
+    location.hash = '#/';
   });
 
-  nav?.querySelectorAll('a').forEach((link) => link.addEventListener('click', () => {
-    nav.classList.remove('open');
-    menuToggle?.setAttribute('aria-expanded', 'false');
-  }));
+  nav?.querySelectorAll('a').forEach((link) => {
+    link.addEventListener('click', () => {
+      closeMenu();
+    });
+  });
 
-  const w = window as ExtendedWindow;
-
-  document.removeEventListener('click', w.__sarafnkaMenuOutsideClick ?? (() => undefined));
-  const handleOutside = (event: MouseEvent) => {
-    const target = event.target as Node;
-    if (!nav || !menuToggle) return;
-    if (!nav.contains(target) && !menuToggle.contains(target) && nav.classList.contains('collapsed')) {
-      nav.classList.remove('open');
-      menuToggle.setAttribute('aria-expanded', 'false');
-    }
-  };
-  w.__sarafnkaMenuOutsideClick = handleOutside;
-  document.addEventListener('click', handleOutside);
-
-  window.removeEventListener('resize', w.__sarafnkaResizeHandler ?? (() => undefined));
   const handleResize = () => refreshNav();
+  const w = window as ExtendedWindow;
+  window.removeEventListener('resize', w.__sarafnkaResizeHandler ?? (() => undefined));
   w.__sarafnkaResizeHandler = handleResize;
   window.addEventListener('resize', handleResize);
+
   refreshNav();
 };
 
