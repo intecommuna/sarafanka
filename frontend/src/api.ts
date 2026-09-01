@@ -1,5 +1,5 @@
 const base = '/api';
-export type Ad = { ID: number; UserID: number; Price: number; Title: string; Description: string; Category: string; ImageURL: string; Status: string; CreatedAt: string; UpdatedAt: string };
+export type Ad = { ID: number; UserID: number; Price: number; Title: string; Description: string; Type: 'product' | 'service'; Category: string; ImageURL: string; Status: string; CreatedAt: string; UpdatedAt: string };
 export type News = { ID: number; AuthorID: number; Title: string; Content: string; CreatedAt: string; UpdatedAt: string };
 export type User = { id: number; email: string; name: string; role: string; created_at: string };
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> { const headers = new Headers(options.headers); headers.set('Content-Type', 'application/json'); const token = localStorage.getItem('token'); if (token) headers.set('Authorization', `Bearer ${token}`); const response = await fetch(`${base}${path}`, { ...options, headers }); const data = await response.json().catch(() => null); if (!response.ok) throw new Error(data?.error || 'Ошибка запроса'); return data as T; }
@@ -7,7 +7,7 @@ const body = (value: unknown) => ({ headers: { 'Content-Type': 'application/json
 export const login = (email: string, password: string) => request<{ token: string; user: User }>('/auth/login', { method: 'POST', ...body({ email, password }) });
 export const register = (name: string, email: string, password: string) => request<{ token: string; user: User }>('/auth/register', { method: 'POST', ...body({ name, email, password }) });
 export const me = () => request<User>('/auth/me');
-export const getAds = (params: { q?: string; category?: string } = {}) => request<Ad[]>(`/ads?${new URLSearchParams(Object.entries(params).filter(([, value]) => value) as string[][])}`);
+export const getAds = (params: { q?: string; category?: string; type?: 'product' | 'service' } = {}) => request<Ad[]>(`/ads?${new URLSearchParams(Object.entries(params).filter(([, value]) => value) as string[][])}`);
 export const getAd = (id: number) => request<Ad>(`/ads/${id}`);
 export const createAd = (value: unknown) => request<Ad>('/ads', { method: 'POST', ...body(value) });
 export const updateAd = (id: number, value: unknown) => request<Ad>(`/ads/${id}`, { method: 'PUT', ...body(value) });

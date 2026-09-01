@@ -1,0 +1,8 @@
+export type Category = { slug: string; name: string; icon: string };
+export const PRODUCT_CATEGORIES: Category[] = [
+  { slug: 'transport', name: 'Транспорт', icon: '🚗' }, { slug: 'realty', name: 'Недвижимость', icon: '🏠' }, { slug: 'electronics', name: 'Электроника', icon: '📱' }, { slug: 'personal', name: 'Личные вещи', icon: '👕' }, { slug: 'hobby', name: 'Хобби и отдых', icon: '🎨' }, { slug: 'pets', name: 'Животные', icon: '🐶' }, { slug: 'food', name: 'Продукты', icon: '🍎' }, { slug: 'construction', name: 'Строительство и ремонт', icon: '🔨' }, { slug: 'furniture', name: 'Мебель и интерьер', icon: '🛋️' }, { slug: 'appliances', name: 'Бытовая техника', icon: '🧺' }, { slug: 'beauty', name: 'Красота и здоровье', icon: '💄' }, { slug: 'sport', name: 'Спорт и туризм', icon: '⚽' }, { slug: 'books', name: 'Книги и журналы', icon: '📚' }, { slug: 'music', name: 'Музыкальные инструменты', icon: '🎸' }, { slug: 'collecting', name: 'Коллекционирование', icon: '🏺' }, { slug: 'garden', name: 'Сад и огород', icon: '🌱' },
+];
+export const SERVICE_CATEGORIES: Category[] = [
+  { slug: 'repair', name: 'Ремонт и строительство', icon: '🔧' }, { slug: 'transport_services', name: 'Перевозки', icon: '🚚' }, { slug: 'education', name: 'Обучение', icon: '📖' }, { slug: 'beauty_care', name: 'Красота и уход', icon: '💇' }, { slug: 'cleaning', name: 'Уборка и клининг', icon: '🧽' }, { slug: 'it', name: 'IT и веб-разработка', icon: '💻' },
+];
+export function categoryInfo(type: string, slug: string): Category { return [...(type === 'service' ? SERVICE_CATEGORIES : PRODUCT_CATEGORIES)].find((category) => category.slug === slug) || { slug, name: slug || 'Другое', icon: '📦' }; }

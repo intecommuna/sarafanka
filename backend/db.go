@@ -48,12 +48,38 @@ func migrate(db *sql.DB) error {
 	if err != nil {
 		return fmt.Errorf("migrate database: %w", err)
 	}
+	rows, err := db.Query("PRAGMA table_info(ads)")
+	if err != nil {
+		return fmt.Errorf("inspect ads table: %w", err)
+	}
+	defer rows.Close()
+	hasType := false
+	for rows.Next() {
+		var cid int
+		var name, columnType string
+		var notNull, primaryKey int
+		var defaultValue any
+		if err := rows.Scan(&cid, &name, &columnType, &notNull, &defaultValue, &primaryKey); err != nil {
+			return err
+		}
+		if name == "type" {
+			hasType = true
+		}
+	}
+	if !hasType {
+		if _, err := db.Exec("ALTER TABLE ads ADD COLUMN type TEXT NOT NULL DEFAULT 'product'"); err != nil {
+			return fmt.Errorf("add ads type: %w", err)
+		}
+	}
 	return nil
 }
 func seedDB(db *sql.DB, config appConfig) error {
 	var count int
-	if err := db.QueryRow("SELECT COUNT(*) FROM users").Scan(&count); err != nil || count > 0 {
+	if err := db.QueryRow("SELECT COUNT(*) FROM users").Scan(&count); err != nil {
 		return err
+	}
+	if count > 0 {
+		return seedServices(db)
 	}
 	hash, err := hashPassword(config.AdminPassword)
 	if err != nil {
@@ -69,12 +95,33 @@ func seedDB(db *sql.DB, config appConfig) error {
 		price                        int
 	}{{"Велосипед", "Городской велосипед в хорошем состоянии", "other", 25000}, {"Ноутбук", "Рабочий ноутбук для учебы и дома", "electronics", 50000}, {"Квартира", "Уютная квартира рядом с метро", "real-estate", 7500000}}
 	for _, ad := range ads {
-		if _, err := db.Exec("INSERT INTO ads (user_id, title, description, price, category) VALUES (?, ?, ?, ?, ?)", adminID, ad.title, ad.description, ad.price, ad.category); err != nil {
+		if _, err := db.Exec("INSERT INTO ads (user_id, title, description, price, category, type) VALUES (?, ?, ?, ?, ?, 'product')", adminID, ad.title, ad.description, ad.price, ad.category); err != nil {
 			return err
 		}
 	}
 	for _, item := range []struct{ title, content string }{{"Добро пожаловать", "Добро пожаловать на Sarafanka!"}, {"Правила площадки", "Будьте вежливы и публикуйте достоверные объявления."}} {
 		if _, err := db.Exec("INSERT INTO news (author_id, title, content) VALUES (?, ?, ?)", adminID, item.title, item.content); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func seedServices(db *sql.DB) error {
+	var count int
+	if err := db.QueryRow("SELECT COUNT(*) FROM ads WHERE type = 'service'").Scan(&count); err != nil {
+		return err
+	}
+	if count > 0 {
+		return nil
+	}
+	var adminID int64
+	if err := db.QueryRow("SELECT id FROM users WHERE role = 'admin' ORDER BY id LIMIT 1").Scan(&adminID); err != nil {
+		return err
+	}
+	services := []struct{ title, description, category string }{{"Ремонт квартир под ключ", "Полный комплекс ремонтных работ для вашей квартиры.", "repair"}, {"Репетитор по математике", "Индивидуальные занятия по математике для школьников.", "education"}, {"Грузоперевозки по городу", "Аккуратные городские грузоперевозки на автомобиле.", "transport_services"}}
+	for _, service := range services {
+		if _, err := db.Exec("INSERT INTO ads (user_id,title,description,price,category,type) VALUES (?,?,?,?,?,'service')", adminID, service.title, service.description, 0, service.category); err != nil {
 			return err
 		}
 	}

@@ -10,22 +10,22 @@ import (
 )
 
 type ad struct {
-	ID, UserID, Price                                                    int64
-	Title, Description, Category, ImageURL, Status, CreatedAt, UpdatedAt string
+	ID, UserID, Price                                                          int64
+	Title, Description, Type, Category, ImageURL, Status, CreatedAt, UpdatedAt string
 }
 type adInput struct {
-	Title, Description, Category, ImageURL, Status string
-	Price                                          int64
+	Title, Description, Type, Category, ImageURL, Status string
+	Price                                                int64
 }
 
 func scanAd(row interface{ Scan(...any) error }) (ad, error) {
 	var value ad
-	err := row.Scan(&value.ID, &value.UserID, &value.Title, &value.Description, &value.Price, &value.Category, &value.ImageURL, &value.Status, &value.CreatedAt, &value.UpdatedAt)
+	err := row.Scan(&value.ID, &value.UserID, &value.Title, &value.Description, &value.Price, &value.Type, &value.Category, &value.ImageURL, &value.Status, &value.CreatedAt, &value.UpdatedAt)
 	return value, err
 }
 func listAdsHandler(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		query := `SELECT id,user_id,title,description,price,category,image_url,status,created_at,updated_at FROM ads`
+		query := `SELECT id,user_id,title,description,price,type,category,image_url,status,created_at,updated_at FROM ads`
 		args := []any{}
 		conditions := []string{}
 		role := ""
@@ -43,6 +43,14 @@ func listAdsHandler(db *sql.DB) http.HandlerFunc {
 		if category := r.URL.Query().Get("category"); category != "" {
 			conditions = append(conditions, "category = ?")
 			args = append(args, category)
+		}
+		if adType := r.URL.Query().Get("type"); adType != "" {
+			if adType != "product" && adType != "service" {
+				writeError(w, 400, "invalid type")
+				return
+			}
+			conditions = append(conditions, "type = ?")
+			args = append(args, adType)
 		}
 		if search := r.URL.Query().Get("q"); search != "" {
 			conditions = append(conditions, "(title LIKE ? OR description LIKE ?)")
@@ -78,7 +86,7 @@ func getAdHandler(db *sql.DB) http.HandlerFunc {
 			writeError(w, 400, "invalid id")
 			return
 		}
-		value, err := scanAd(db.QueryRow("SELECT id,user_id,title,description,price,category,image_url,status,created_at,updated_at FROM ads WHERE id = ?", id))
+		value, err := scanAd(db.QueryRow("SELECT id,user_id,title,description,price,type,category,image_url,status,created_at,updated_at FROM ads WHERE id = ?", id))
 		if err != nil {
 			writeError(w, 404, "ad not found")
 			return
@@ -104,20 +112,20 @@ func createAdHandler(db *sql.DB) http.Handler {
 		if !decodeJSON(w, r, &input) {
 			return
 		}
-		if strings.TrimSpace(input.Title) == "" || strings.TrimSpace(input.Description) == "" || input.Price < 0 {
+		if strings.TrimSpace(input.Title) == "" || strings.TrimSpace(input.Description) == "" || input.Price < 0 || (input.Type != "product" && input.Type != "service") {
 			writeError(w, 400, "title and description are required; price must be non-negative")
 			return
 		}
 		if input.Category == "" {
 			input.Category = "other"
 		}
-		result, err := db.Exec("INSERT INTO ads (user_id,title,description,price,category,image_url,status) VALUES (?, ?, ?, ?, ?, ?, ?)", authUser(r).ID, strings.TrimSpace(input.Title), strings.TrimSpace(input.Description), input.Price, input.Category, input.ImageURL, valueOr(input.Status, "active"))
+		result, err := db.Exec("INSERT INTO ads (user_id,title,description,price,type,category,image_url,status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", authUser(r).ID, strings.TrimSpace(input.Title), strings.TrimSpace(input.Description), input.Price, input.Type, input.Category, input.ImageURL, valueOr(input.Status, "active"))
 		if err != nil {
 			writeError(w, 500, "failed to create ad")
 			return
 		}
 		id, _ := result.LastInsertId()
-		value, _ := scanAd(db.QueryRow("SELECT id,user_id,title,description,price,category,image_url,status,created_at,updated_at FROM ads WHERE id = ?", id))
+		value, _ := scanAd(db.QueryRow("SELECT id,user_id,title,description,price,type,category,image_url,status,created_at,updated_at FROM ads WHERE id = ?", id))
 		writeJSON(w, 201, value)
 	})
 }
@@ -141,16 +149,16 @@ func updateAdHandler(db *sql.DB) http.Handler {
 		if !decodeJSON(w, r, &input) {
 			return
 		}
-		if strings.TrimSpace(input.Title) == "" || strings.TrimSpace(input.Description) == "" || input.Price < 0 {
+		if strings.TrimSpace(input.Title) == "" || strings.TrimSpace(input.Description) == "" || input.Price < 0 || (input.Type != "product" && input.Type != "service") {
 			writeError(w, 400, "title and description are required; price must be non-negative")
 			return
 		}
-		_, err := db.Exec("UPDATE ads SET title=?,description=?,price=?,category=?,image_url=?,status=?,updated_at=CURRENT_TIMESTAMP WHERE id=?", strings.TrimSpace(input.Title), strings.TrimSpace(input.Description), input.Price, valueOr(input.Category, "other"), input.ImageURL, valueOr(input.Status, "active"), id)
+		_, err := db.Exec("UPDATE ads SET title=?,description=?,price=?,type=?,category=?,image_url=?,status=?,updated_at=CURRENT_TIMESTAMP WHERE id=?", strings.TrimSpace(input.Title), strings.TrimSpace(input.Description), input.Price, input.Type, valueOr(input.Category, "other"), input.ImageURL, valueOr(input.Status, "active"), id)
 		if err != nil {
 			writeError(w, 500, "failed to update ad")
 			return
 		}
-		value, _ := scanAd(db.QueryRow("SELECT id,user_id,title,description,price,category,image_url,status,created_at,updated_at FROM ads WHERE id = ?", id))
+		value, _ := scanAd(db.QueryRow("SELECT id,user_id,title,description,price,type,category,image_url,status,created_at,updated_at FROM ads WHERE id = ?", id))
 		writeJSON(w, 200, value)
 	})
 }
