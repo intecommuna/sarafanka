@@ -5,6 +5,12 @@ services:
     restart: unless-stopped
     expose:
       - "8080"
+    volumes:
+      - ./backend/data:/app/data
+    environment:
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@sarafanka.su}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
 
   frontend:
     build: ./frontend
