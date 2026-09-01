@@ -1,0 +1,6 @@
+export type Params = Record<string, string>;
+type Handler = (params: Params) => void;
+const routes: { pattern: string; handler: Handler }[] = [];
+export const route = (pattern: string, handler: Handler) => routes.push({ pattern, handler });
+const match = (pattern: string, path: string): Params | null => { const names: string[] = []; const source = pattern.split('/').map((part) => { if (part.startsWith(':')) { names.push(part.slice(1)); return '([^/]+)'; } return part || ''; }).join('/'); const found = new RegExp(`^${source || '/'}$`).exec(path); return found ? Object.fromEntries(names.map((name, index) => [name, decodeURIComponent(found[index + 1])])) : null; };
+export const initRouter = (definitions: Record<string, Handler>) => { Object.entries(definitions).forEach(([pattern, handler]) => route(pattern, handler)); const render = () => { const raw = location.hash.slice(1) || '/'; const [pathname, query = ''] = raw.split('?'); const params = new URLSearchParams(query); const found = routes.find((item) => match(item.pattern, pathname)); if (found) found.handler({ ...(match(found.pattern, pathname) || {}), ...Object.fromEntries(params) }); else location.hash = '#/'; }; window.addEventListener('hashchange', render); render(); };

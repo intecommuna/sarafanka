@@ -1,0 +1,22 @@
+const base = '/api';
+export type Ad = { ID: number; UserID: number; Price: number; Title: string; Description: string; Category: string; ImageURL: string; Status: string; CreatedAt: string; UpdatedAt: string };
+export type News = { ID: number; AuthorID: number; Title: string; Content: string; CreatedAt: string; UpdatedAt: string };
+export type User = { id: number; email: string; name: string; role: string; created_at: string };
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> { const headers = new Headers(options.headers); headers.set('Content-Type', 'application/json'); const token = localStorage.getItem('token'); if (token) headers.set('Authorization', `Bearer ${token}`); const response = await fetch(`${base}${path}`, { ...options, headers }); const data = await response.json().catch(() => null); if (!response.ok) throw new Error(data?.error || 'Ошибка запроса'); return data as T; }
+const body = (value: unknown) => ({ headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(value) });
+export const login = (email: string, password: string) => request<{ token: string; user: User }>('/auth/login', { method: 'POST', ...body({ email, password }) });
+export const register = (name: string, email: string, password: string) => request<{ token: string; user: User }>('/auth/register', { method: 'POST', ...body({ name, email, password }) });
+export const me = () => request<User>('/auth/me');
+export const getAds = (params: { q?: string; category?: string } = {}) => request<Ad[]>(`/ads?${new URLSearchParams(Object.entries(params).filter(([, value]) => value) as string[][])}`);
+export const getAd = (id: number) => request<Ad>(`/ads/${id}`);
+export const createAd = (value: unknown) => request<Ad>('/ads', { method: 'POST', ...body(value) });
+export const updateAd = (id: number, value: unknown) => request<Ad>(`/ads/${id}`, { method: 'PUT', ...body(value) });
+export const deleteAd = (id: number) => request<void>(`/ads/${id}`, { method: 'DELETE' });
+export const getNews = () => request<News[]>('/news');
+export const getNewsItem = (id: number) => request<News>(`/news/${id}`);
+export const createNews = (value: unknown) => request<News>('/news', { method: 'POST', ...body(value) });
+export const updateNews = (id: number, value: unknown) => request<News>(`/news/${id}`, { method: 'PUT', ...body(value) });
+export const deleteNews = (id: number) => request<void>(`/news/${id}`, { method: 'DELETE' });
+export const adminUsers = () => request<User[]>('/admin/users');
+export const setUserRole = (id: number, role: string) => request<User>(`/admin/users/${id}/role`, { method: 'PUT', ...body({ role }) });
+export const deleteUser = (id: number) => request<void>(`/admin/users/${id}`, { method: 'DELETE' });
