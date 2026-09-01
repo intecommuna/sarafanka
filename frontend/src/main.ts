@@ -28,12 +28,17 @@ export const refreshHeader = () => {
   header.innerHTML = `<div class="header-inner container">
     <a class="brand" href="#/"><span class="brand-mark">С</span><span>Сарафанка</span></a>
     <form class="search" id="search-form"><input id="header-search" placeholder="Найти объявление" aria-label="Поиск"><button aria-label="Искать">⌕</button></form>
-    <nav><a href="#/catalog">Каталог</a><a href="#/news">Новости</a>${currentUser ? `<a href="#/my">Мои объявления</a>${currentUser.role === 'admin' ? '<a href="#/admin">Админка</a>' : ''}${['admin','moderator'].includes(currentUser.role) ? '<a class="nav-add" href="#/news/new">+ Новость</a>' : ''}<span class="user-name">${escapeHtml(currentUser.name)}</span><button class="link-button" id="logout">Выйти</button>` : '<a href="#/login">Войти</a><a class="nav-add" href="#/register">Регистрация</a>'}<button class="theme-toggle" id="theme-toggle" type="button" aria-label="Переключить тему">${initialTheme === 'dark' ? '☀️' : '🌙'}</button></nav>
+    <button class="menu-toggle" id="menu-toggle" type="button" aria-label="Открыть меню" aria-expanded="false"><span></span><span></span><span></span></button>
+    <nav id="main-nav"><a href="#/catalog">Каталог</a><a href="#/news">Новости</a>${currentUser ? `<a href="#/my">Мои объявления</a>${currentUser.role === 'admin' ? '<a href="#/admin">Админка</a>' : ''}${['admin','moderator'].includes(currentUser.role) ? '<a class="nav-add" href="#/news/new">+ Новость</a>' : ''}<span class="user-name">${escapeHtml(currentUser.name)}</span><button class="link-button" id="logout">Выйти</button>` : '<a href="#/login">Войти</a><a class="nav-add" href="#/register">Регистрация</a>'}<button class="theme-toggle" id="theme-toggle" type="button" aria-label="Переключить тему">${initialTheme === 'dark' ? '☀️' : '🌙'}</button></nav>
     <a class="button primary compact" href="${currentUser ? '#/ad/new' : '#/login'}">+ Объявление</a>
   </div>`;
   header.querySelector<HTMLFormElement>('#search-form')?.addEventListener('submit', (event) => { event.preventDefault(); location.hash = `#/catalog?q=${encodeURIComponent(header.querySelector<HTMLInputElement>('#header-search')!.value)}`; });
   header.querySelector('#logout')?.addEventListener('click', () => { localStorage.removeItem('token'); currentUser = null; refreshHeader(); location.hash = '#/'; });
   header.querySelector('#theme-toggle')?.addEventListener('click', () => applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'));
+  const menuToggle = header.querySelector<HTMLButtonElement>('#menu-toggle');
+  const nav = header.querySelector<HTMLElement>('#main-nav');
+  menuToggle?.addEventListener('click', () => { const isOpen = nav?.classList.toggle('is-open') ?? false; menuToggle.setAttribute('aria-expanded', String(isOpen)); });
+  nav?.querySelectorAll('a').forEach((link) => link.addEventListener('click', () => { nav.classList.remove('is-open'); menuToggle?.setAttribute('aria-expanded', 'false'); }));
 };
 
 export const escapeHtml = (value: string) => value.replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]!));
