@@ -12,6 +12,9 @@ import { bindNewsForm, bindNewsItem, renderNews, renderNewsForm, renderNewsItem 
 export type SessionUser = { id: number; email: string; name: string; role: string; created_at: string };
 export let currentUser: SessionUser | null = null;
 export const setCurrentUser = (user: SessionUser | null) => { currentUser = user; };
+const initialTheme = localStorage.getItem('theme') || 'light';
+document.documentElement.setAttribute('data-theme', initialTheme);
+const applyTheme = (theme: string) => { document.documentElement.setAttribute('data-theme', theme); localStorage.setItem('theme', theme); const toggle = document.querySelector<HTMLButtonElement>('#theme-toggle'); if (toggle) toggle.textContent = theme === 'dark' ? '☀️' : '🌙'; };
 
 const app = document.querySelector<HTMLElement>('#app')!;
 const render = (page: () => Promise<string> | string) => {
@@ -25,11 +28,12 @@ export const refreshHeader = () => {
   header.innerHTML = `<div class="header-inner container">
     <a class="brand" href="#/"><span class="brand-mark">С</span><span>Сарафанка</span></a>
     <form class="search" id="search-form"><input id="header-search" placeholder="Найти объявление" aria-label="Поиск"><button aria-label="Искать">⌕</button></form>
-    <nav><a href="#/catalog">Каталог</a><a href="#/news">Новости</a>${currentUser ? `<a href="#/my">Мои объявления</a>${currentUser.role === 'admin' ? '<a href="#/admin">Админка</a>' : ''}${['admin','moderator'].includes(currentUser.role) ? '<a class="nav-add" href="#/news/new">+ Новость</a>' : ''}<span class="user-name">${escapeHtml(currentUser.name)}</span><button class="link-button" id="logout">Выйти</button>` : '<a href="#/login">Войти</a><a class="nav-add" href="#/register">Регистрация</a>'}</nav>
+    <nav><a href="#/catalog">Каталог</a><a href="#/news">Новости</a>${currentUser ? `<a href="#/my">Мои объявления</a>${currentUser.role === 'admin' ? '<a href="#/admin">Админка</a>' : ''}${['admin','moderator'].includes(currentUser.role) ? '<a class="nav-add" href="#/news/new">+ Новость</a>' : ''}<span class="user-name">${escapeHtml(currentUser.name)}</span><button class="link-button" id="logout">Выйти</button>` : '<a href="#/login">Войти</a><a class="nav-add" href="#/register">Регистрация</a>'}<button class="theme-toggle" id="theme-toggle" type="button" aria-label="Переключить тему">${initialTheme === 'dark' ? '☀️' : '🌙'}</button></nav>
     <a class="button primary compact" href="${currentUser ? '#/ad/new' : '#/login'}">+ Объявление</a>
   </div>`;
   header.querySelector<HTMLFormElement>('#search-form')?.addEventListener('submit', (event) => { event.preventDefault(); location.hash = `#/catalog?q=${encodeURIComponent(header.querySelector<HTMLInputElement>('#header-search')!.value)}`; });
   header.querySelector('#logout')?.addEventListener('click', () => { localStorage.removeItem('token'); currentUser = null; refreshHeader(); location.hash = '#/'; });
+  header.querySelector('#theme-toggle')?.addEventListener('click', () => applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'));
 };
 
 export const escapeHtml = (value: string) => value.replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]!));
