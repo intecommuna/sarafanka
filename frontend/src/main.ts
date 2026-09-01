@@ -22,6 +22,29 @@ const render = (page: () => Promise<string> | string) => {
   Promise.resolve(page()).then((html) => { app.innerHTML = html; const hash = location.hash; if (hash.includes('/catalog')) bindCatalog(); if (hash.match(/^#\/ads\/\d+$/)) bindAd(Number(hash.split('/')[2])); if (hash === '#/ad/new') bindAdForm(); if (hash.includes('/ad/') && hash.includes('/edit')) bindAdForm(Number(hash.split('/')[2])); if (hash === '#/my') bindMy(); if (hash.match(/^#\/news\/\d+$/)) bindNewsItem(Number(hash.split('/')[2])); if (hash.includes('/news/new')) bindNewsForm(); if (hash.includes('/news/') && hash.includes('/edit')) bindNewsForm(Number(hash.split('/')[2])); if (hash === '#/login') bindAuth('login'); if (hash === '#/register') bindAuth('register'); });
 };
 
+type ExtendedWindow = Window & {
+  __sarafnkaMenuOutsideClick?: (event: MouseEvent) => void;
+  __sarafnkaResizeHandler?: () => void;
+};
+
+const refreshNav = () => {
+  const header = document.querySelector<HTMLElement>('header');
+  const nav = document.getElementById('main-nav');
+  const burger = document.getElementById('menu-toggle');
+
+  if (!header || !nav || !burger) return;
+
+  nav.classList.remove('collapsed');
+  burger.style.display = 'none';
+
+  requestAnimationFrame(() => {
+    if (header.scrollWidth > header.clientWidth + 1) {
+      nav.classList.add('collapsed');
+      burger.style.display = '';
+    }
+  });
+};
+
 export const refreshHeader = () => {
   const header = document.querySelector<HTMLElement>('#site-header');
   if (!header) return;
@@ -124,15 +147,37 @@ export const refreshHeader = () => {
 
   const menuToggle = header.querySelector<HTMLButtonElement>('#menu-toggle');
   const nav = header.querySelector<HTMLElement>('#main-nav');
+
   menuToggle?.addEventListener('click', () => {
-    const isOpen = nav?.classList.toggle('is-open') ?? false;
+    if (!nav?.classList.contains('collapsed')) return;
+    const isOpen = nav.classList.toggle('open');
     menuToggle.setAttribute('aria-expanded', String(isOpen));
   });
 
   nav?.querySelectorAll('a').forEach((link) => link.addEventListener('click', () => {
-    nav.classList.remove('is-open');
+    nav.classList.remove('open');
     menuToggle?.setAttribute('aria-expanded', 'false');
   }));
+
+  const w = window as ExtendedWindow;
+
+  document.removeEventListener('click', w.__sarafnkaMenuOutsideClick ?? (() => undefined));
+  const handleOutside = (event: MouseEvent) => {
+    const target = event.target as Node;
+    if (!nav || !menuToggle) return;
+    if (!nav.contains(target) && !menuToggle.contains(target) && nav.classList.contains('collapsed')) {
+      nav.classList.remove('open');
+      menuToggle.setAttribute('aria-expanded', 'false');
+    }
+  };
+  w.__sarafnkaMenuOutsideClick = handleOutside;
+  document.addEventListener('click', handleOutside);
+
+  window.removeEventListener('resize', w.__sarafnkaResizeHandler ?? (() => undefined));
+  const handleResize = () => refreshNav();
+  w.__sarafnkaResizeHandler = handleResize;
+  window.addEventListener('resize', handleResize);
+  refreshNav();
 };
 
 export const escapeHtml = (value: string) => value.replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]!));
