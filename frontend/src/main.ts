@@ -89,6 +89,13 @@ export const refreshHeader = () => {
       <button class="btn btn-sm" id="search-go" type="button">Найти</button>
     </div>
     <nav class="mnav" id="mnav">${mobileLinks}</nav>
+    <nav class="bottom-nav" id="bottom-nav" aria-label="Основная навигация">
+      <a href="#/" class="bottom-nav__item">🏠<span>Главная</span></a>
+      <a href="#/catalog" class="bottom-nav__item">🛍️<span>Каталог</span></a>
+      <a href="#/ad/new" class="bottom-nav__item accent">＋<span>Подать</span></a>
+      <a href="#/news" class="bottom-nav__item">📰<span>Новости</span></a>
+      <a href="#/my" class="bottom-nav__item">👤<span>Профиль</span></a>
+    </nav>
   `;
 
   const themeToggle = header.querySelector<HTMLButtonElement>('#theme-toggle');
@@ -206,6 +213,16 @@ export const refreshHeader = () => {
   window.removeEventListener('resize', w.__sarafnkaResizeHandler ?? (() => undefined));
   w.__sarafnkaResizeHandler = handleResize;
   window.addEventListener('resize', handleResize);
+
+  const bottomNav = header.querySelector<HTMLElement>('#bottom-nav');
+  bottomNav?.querySelectorAll('a').forEach((link) => {
+    const href = link.getAttribute('href') || '';
+    const isHome = href === '#/' && (location.hash === '#/' || location.hash === '');
+    const isCatalog = href === '#/catalog' && location.hash.startsWith('#/catalog');
+    const isNews = href === '#/news' && location.hash.startsWith('#/news');
+    const isMy = href === '#/my' && location.hash.startsWith('#/my');
+    link.classList.toggle('is-active', Boolean(isHome || isCatalog || isNews || isMy));
+  });
 
   refreshNav();
 };
