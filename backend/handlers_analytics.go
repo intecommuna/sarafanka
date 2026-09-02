@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -109,15 +110,7 @@ func buildAnalyticsResponse(address string) analyticsResponse {
 		}
 	}
 	if len(result.SourcesUsed) == 0 {
-		result.SourcesUsed = []string{"dadata", "nominatim", "overpass", "cbr"}
-	}
-	result.Infrastructure = ensureInfrastructure(result.Infrastructure)
-	if len(result.Buildings) == 0 {
-		result.Buildings = []map[string]any{
-			{"name": "Дом №1", "distance_m": 340, "kind": "жилая застройка"},
-			{"name": "Дом №2", "distance_m": 520, "kind": "коммерческая недвижимость"},
-			{"name": "Дом №3", "distance_m": 860, "kind": "жилая застройка"},
-		}
+		result.SourcesUsed = []string{"nominatim"}
 	}
 	return result
 }
@@ -189,7 +182,12 @@ func queryOverpass(lat, lon float64) map[string][]distanceItem {
 		"parks":      {},
 		"pharmacies": {},
 	}
-	query := `[out:json][timeout:25];(node["railway"="station"](around:1000,` + strconv.FormatFloat(lat, 'f', -1, 64) + `,` + strconv.FormatFloat(lon, 'f', -1, 64) + `);way["amenity"="school"](around:1000,` + strconv.FormatFloat(lat, 'f', -1, 64) + `,` + strconv.FormatFloat(lon, 'f', -1, 64) + `);way["leisure"="park"](around:1000,` + strconv.FormatFloat(lat, 'f', -1, 64) + `,` + strconv.FormatFloat(lon, 'f', -1, 64) + `);node["amenity"="pharmacy"](around:1000,` + strconv.FormatFloat(lat, 'f', -1, 64) + `,` + strconv.FormatFloat(lon, 'f', -1, 64) + `););out center;`
+	query := `[out:json][timeout:25];(
+		node["railway"="station"](around:1000,` + strconv.FormatFloat(lat, 'f', -1, 64) + `,` + strconv.FormatFloat(lon, 'f', -1, 64) + `);
+		way["amenity"="school"](around:1000,` + strconv.FormatFloat(lat, 'f', -1, 64) + `,` + strconv.FormatFloat(lon, 'f', -1, 64) + `);
+		way["leisure"="park"](around:1000,` + strconv.FormatFloat(lat, 'f', -1, 64) + `,` + strconv.FormatFloat(lon, 'f', -1, 64) + `);
+		node["amenity"="pharmacy"](around:1000,` + strconv.FormatFloat(lat, 'f', -1, 64) + `,` + strconv.FormatFloat(lon, 'f', -1, 64) + `);
+	);out center;`
 	body := strings.NewReader("data=" + url.QueryEscape(query))
 	req, err := http.NewRequest(http.MethodPost, "https://overpass-api.de/api/interpreter", body)
 	if err != nil {
@@ -224,13 +222,13 @@ func queryOverpass(lat, lon float64) map[string][]distanceItem {
 			lon2 = el.Center.Lon
 		}
 		distance := haversineMeters(lat, lon, lat2, lon2)
-		name := el.Tags["name"]
+		name := strings.TrimSpace(el.Tags["name"])
 		if name == "" {
 			name = "Объект"
 		}
 		switch {
 		case el.Tags["railway"] == "station":
-			result["metro"] = append(result["metro"], distanceItem{Name: name, Distance: distance, Address: "Рядом с объектом"})
+			result["metro"] = append(result["metro"], distanceItem{Name: name, Distance: distance, Address: "Метро"})
 		case el.Tags["amenity"] == "school":
 			result["schools"] = append(result["schools"], distanceItem{Name: name, Distance: distance, Address: "Школа"})
 		case el.Tags["leisure"] == "park":
@@ -240,7 +238,7 @@ func queryOverpass(lat, lon float64) map[string][]distanceItem {
 		}
 	}
 	for key, items := range result {
-		sortDistance(items)
+		sort.Slice(items, func(i, j int) bool { return items[i].Distance < items[j].Distance })
 		if len(items) > 3 {
 			result[key] = items[:3]
 		}
@@ -256,33 +254,6 @@ func sortDistance(items []distanceItem) {
 			}
 		}
 	}
-}
-
-func ensureInfrastructure(raw map[string][]distanceItem) map[string][]distanceItem {
-	out := map[string][]distanceItem{
-		"metro":      {},
-		"schools":    {},
-		"parks":      {},
-		"pharmacies": {},
-	}
-	for key, value := range raw {
-		if _, ok := out[key]; ok && len(value) > 0 {
-			out[key] = value
-		}
-	}
-	if len(out["metro"]) == 0 {
-		out["metro"] = []distanceItem{{Name: "Красные Ворота", Distance: 1000, Address: "Метро"}}
-	}
-	if len(out["schools"]) == 0 {
-		out["schools"] = []distanceItem{{Name: "Школа №1", Distance: 600, Address: "Школа"}}
-	}
-	if len(out["parks"]) == 0 {
-		out["parks"] = []distanceItem{{Name: "Парк культуры", Distance: 800, Address: "Парк"}}
-	}
-	if len(out["pharmacies"]) == 0 {
-		out["pharmacies"] = []distanceItem{{Name: "Фармаско", Distance: 400, Address: "Аптека"}}
-	}
-	return out
 }
 
 func queryCBR() (float64, float64, bool) {

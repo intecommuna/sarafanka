@@ -11,15 +11,16 @@ import (
 )
 
 type parserListing struct {
-	ID       int    `json:"id"`
-	Title    string `json:"title"`
-	City     string `json:"city"`
-	District string `json:"district"`
-	Address  string `json:"address"`
-	Rooms    int    `json:"rooms"`
-	Price    int    `json:"price"`
-	Source   string `json:"source"`
-	URL      string `json:"url"`
+	ID        int    `json:"id"`
+	Title     string `json:"title"`
+	City      string `json:"city"`
+	District  string `json:"district"`
+	Address   string `json:"address"`
+	Rooms     int    `json:"rooms"`
+	Price     int    `json:"price"`
+	Source    string `json:"source"`
+	URL       string `json:"url"`
+	SearchURL string `json:"search_url,omitempty"`
 }
 
 var (
@@ -31,8 +32,16 @@ var (
 
 func parserDataset() []parserListing {
 	parserSeedOnce.Do(func() {
-		cities := []string{"Москва", "Москва", "Москва", "Санкт-Петербург", "Казань", "Екатеринбург"}
-		districts := []string{"Центр", "Митино", "Тушино", "Хамовники", "Южное Бутово", "Перово", "Красная Пресня", "Крылатское", "Видное", "Бибирево"}
+		cities := []string{"Москва", "Санкт-Петербург", "Казань", "Екатеринбург", "Новосибирск", "Махачкала", "Южно-Сухокумск"}
+		districtByCity := map[string][]string{
+			"Москва":          {"Центр", "Митино", "Тушино", "Хамовники", "Южное Бутово", "Перово", "Красная Пресня", "Крылатское", "Видное", "Бибирево"},
+			"Санкт-Петербург": {"Центральный", "Петроградский", "Московский", "Калининский", "Выборгский", "Невский", "Адмиралтейский", "Красногвардейский", "Фрунзенский", "Приморский"},
+			"Казань":          {"Центр", "Ново-Савиновский", "Московский", "Кировский", "Приволжский", "Советский", "Авиастроительный", "Вахитовский", "Нижнекамский", "Тукая"},
+			"Екатеринбург":    {"Центр", "Железнодорожный", "Орджоникидзевский", "Кировский", "Октябрьский", "Чкаловский", "Ленинский", "Верх-Исетский", "Парковый", "Академический"},
+			"Новосибирск":     {"Центральный", "Заельцовский", "Кировский", "Октябрьский", "Ленинский", "Советский", "Дзержинский", "Железнодорожный", "Черепановский", "Калининский"},
+			"Махачкала":       {"Центр", "Кировский", "Тарки", "Каспийский", "Южный", "Северный", "Ленинский", "Нагорный", "Порт", "Артёмовский"},
+			"Южно-Сухокумск":  {"Центр", "Северный", "Южный", "Набережный", "Школьный", "Лесной", "Речной", "Промышленный", "Комсомольский", "Молодёжный"},
+		}
 		sources := []struct {
 			name   string
 			prefix string
@@ -42,30 +51,101 @@ func parserDataset() []parserListing {
 			{name: "domclick", prefix: "Домклик"},
 		}
 		var seed []parserListing
-		for i := 0; i < 30; i++ {
-			src := sources[i%len(sources)]
-			city := cities[i%len(cities)]
-			district := districts[i%len(districts)]
-			rooms := 1 + (i % 4)
-			basePrice := 2400000 + i*170000 + (i%5)*90000
-			if rooms >= 3 {
-				basePrice += 1500000
+		for _, city := range cities {
+			districts := districtByCity[city]
+			for i := 0; i < 10; i++ {
+				src := sources[i%len(sources)]
+				district := districts[i%len(districts)]
+				rooms := 1 + (i % 4)
+				basePrice := 1800000 + i*120000 + (i%5)*70000
+				if city == "Москва" || city == "Санкт-Петербург" {
+					basePrice += 1500000
+				}
+				if city == "Новосибирск" || city == "Екатеринбург" {
+					basePrice -= 200000
+				}
+				if city == "Махачкала" || city == "Южно-Сухокумск" {
+					basePrice = int(float64(basePrice) * 0.6)
+				}
+				if rooms >= 3 {
+					basePrice += 500000
+				}
+				id := (len(seed) + 1000)
+				addr := city + ", " + district + ", ул. " + strconv.Itoa(10+i) + ", д. " + strconv.Itoa(1+i)
+				seed = append(seed, parserListing{
+					ID:        id,
+					Title:     src.prefix + " · " + strconv.Itoa(rooms) + "-комнатная квартира",
+					City:      city,
+					District:  district,
+					Address:   addr,
+					Rooms:     rooms,
+					Price:     basePrice,
+					Source:    src.name,
+					URL:       "https://example.com/" + src.name + "/" + strconv.Itoa(id),
+					SearchURL: sourceSearchURL(src.name, city, rooms),
+				})
 			}
-			seed = append(seed, parserListing{
-				ID:       1000 + i,
-				Title:    src.prefix + " · " + strconv.Itoa(rooms) + "-комнатная квартира",
-				City:     city,
-				District: district,
-				Address:  city + ", " + district + ", ул. " + strconv.Itoa(10+i) + ", д. " + strconv.Itoa(1+i),
-				Rooms:    rooms,
-				Price:    basePrice,
-				Source:   src.name,
-				URL:      "https://example.com/" + src.name + "/" + strconv.Itoa(1000+i),
-			})
 		}
 		parserSeedData = seed
 	})
 	return append([]parserListing(nil), parserSeedData...)
+}
+
+func sourceSearchURL(source, city string, rooms int) string {
+	citySlug := normalizeCitySlug(city)
+	roomLabel := "kvaritiry"
+	switch rooms {
+	case 1:
+		roomLabel = "1-komnatnye"
+	case 2:
+		roomLabel = "2-komnatnye"
+	case 3:
+		roomLabel = "3-komnatnye"
+	case 4:
+		roomLabel = "4-komnatnye"
+	default:
+		roomLabel = "kvartiry"
+	}
+	switch source {
+	case "avito":
+		if citySlug == "" {
+			return "https://www.avito.ru/rossiya/kvartiry/prodam"
+		}
+		if rooms > 0 && rooms <= 4 {
+			return "https://www.avito.ru/" + citySlug + "/kvartiry/prodam-" + roomLabel
+		}
+		return "https://www.avito.ru/" + citySlug + "/kvartiry/prodam"
+	case "cian":
+		if citySlug == "" {
+			return "https://www.cian.ru/sale/flat/"
+		}
+		return "https://www.cian.ru/sale/flat/"
+	case "domclick":
+		return "https://www.domclick.ru/"
+	default:
+		return "https://www.avito.ru/rossiya/kvartiry/prodam"
+	}
+}
+
+func normalizeCitySlug(city string) string {
+	switch strings.TrimSpace(city) {
+	case "Москва":
+		return "moskva"
+	case "Санкт-Петербург":
+		return "sankt-peterburg"
+	case "Казань":
+		return "kazan"
+	case "Екатеринбург":
+		return "ekaterinburg"
+	case "Новосибирск":
+		return "novosibirsk"
+	case "Махачкала":
+		return "mahachkala"
+	case "Южно-Сухокумск":
+		return "yuzhno-sukhokumsk"
+	default:
+		return strings.ToLower(city)
+	}
 }
 
 func allowToolRequest(uid int64, limit int, window time.Duration) bool {
@@ -106,7 +186,7 @@ func parserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	items := make([]parserListing, 0)
 	for _, item := range parserDataset() {
-		matchCity := city == "" || strings.Contains(strings.ToLower(item.City), city)
+		matchCity := city == "" || strings.EqualFold(item.City, city)
 		matchDistrict := district == "" || strings.Contains(strings.ToLower(item.District), district)
 		matchRooms := rooms == 0 || item.Rooms == rooms
 		matchSource := source == "" || source == "all" || strings.EqualFold(item.Source, source)

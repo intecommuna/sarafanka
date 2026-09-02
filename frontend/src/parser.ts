@@ -7,6 +7,8 @@ const sourceColors: Record<string, string> = {
   domclick: '#E74C3C'
 };
 
+const cityOptions = ['Москва', 'Санкт-Петербург', 'Казань', 'Екатеринбург', 'Новосибирск', 'Махачкала', 'Южно-Сухокумск'];
+
 export function renderParser() {
   return `
     <section class="tool-panel">
@@ -20,7 +22,8 @@ export function renderParser() {
         <div class="parser-row">
           <label>
             <span>Город</span>
-            <input name="city" value="Москва" placeholder="Москва" />
+            <input name="city" value="Москва" placeholder="Москва" list="cities-list" />
+            <datalist id="cities-list">${cityOptions.map((city) => `<option value="${escapeHtml(city)}"></option>`).join('')}</datalist>
           </label>
           <label>
             <span>Район</span>
@@ -88,24 +91,28 @@ export function bindParser() {
     if (sort) params.set('sort', sort);
     try {
       const response = await getParserResults(Object.fromEntries(params.entries()));
-      results.innerHTML = response.items.length ? response.items.map(item => `
-        <article class="parser-card">
-          <div class="parser-top">
-            <span class="source-badge" style="background:${sourceColors[item.source] || '#4A90E2'};">${escapeHtml(item.source)}</span>
-            <span class="item-price">${Number(item.price).toLocaleString('ru-RU')} ₽</span>
-          </div>
-          <h3>${escapeHtml(item.title)}</h3>
-          <p>${escapeHtml(item.city)} · ${escapeHtml(item.district)}</p>
-          <div class="meta-row">
-            <span>${item.rooms} комн.</span>
-            <span>${escapeHtml(item.address)}</span>
-          </div>
-          <div class="parser-actions">
-            <a class="button primary" href="${item.url}" target="_blank" rel="noreferrer">Открыть источник</a>
-            <a class="button alt" href="#/tools/analytics?address=${encodeURIComponent(item.address)}">📊 Аналитика адреса</a>
-          </div>
-        </article>
-      `).join('') : '<div class="empty">По вашему запросу нет подходящих вариантов.</div>';
+      results.innerHTML = response.items.length ? response.items.map(item => {
+        const sourceLabel = item.source === 'avito' ? 'Авито' : item.source === 'cian' ? 'Циан' : 'Домклик';
+        const sourceUrl = item.search_url || `https://www.${item.source === 'domclick' ? 'domclick.ru' : item.source === 'avito' ? 'avito.ru' : 'cian.ru'}`;
+        return `
+          <article class="parser-card">
+            <div class="parser-top">
+              <span class="source-badge" style="background:${sourceColors[item.source] || '#4A90E2'};">${escapeHtml(item.source)}</span>
+              <span class="item-price">${Number(item.price).toLocaleString('ru-RU')} ₽</span>
+            </div>
+            <h3>${escapeHtml(item.title)}</h3>
+            <p>${escapeHtml(item.city)} · ${escapeHtml(item.district)}</p>
+            <div class="meta-row">
+              <span>${item.rooms} комн.</span>
+              <span>${escapeHtml(item.address)}</span>
+            </div>
+            <div class="parser-actions">
+              <a class="button primary" href="${sourceUrl}" target="_blank" rel="noreferrer">Поиск на ${sourceLabel}</a>
+              <a class="button alt" href="#/tools/analytics?address=${encodeURIComponent(item.address)}">📊 Аналитика адреса</a>
+            </div>
+          </article>
+        `;
+      }).join('') : '<div class="empty">По вашему запросу нет подходящих вариантов.</div>';
     } catch (error) {
       results.innerHTML = `<div class="error">${escapeHtml((error as Error).message)}</div>`;
     }

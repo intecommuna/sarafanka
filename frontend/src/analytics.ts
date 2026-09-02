@@ -40,50 +40,64 @@ export function bindAnalytics() {
     try {
       const analytics = await getAnalyticsResults(address);
       const mortgage = await getMortgageQuote(15000000, 20, 20);
+      const lat = Number(analytics.coordinates?.lat || 0);
+      const lon = Number(analytics.coordinates?.lon || 0);
+      const bbox = `${(lon - 0.008).toFixed(6)},${(lat - 0.004).toFixed(6)},${(lon + 0.008).toFixed(6)},${(lat + 0.004).toFixed(6)}`;
+      const osmMap = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat.toFixed(6)},${lon.toFixed(6)}`;
+      const osmLink = `https://www.openstreetmap.org/?mlat=${lat.toFixed(6)}&mlon=${lon.toFixed(6)}#map=16/${lat.toFixed(6)}/${lon.toFixed(6)}`;
+      const buildingsText = (analytics.buildings || []).length ? (analytics.buildings || []).slice(0, 3).map((item) => `<li>${escapeHtml(String(item.name || 'Здание'))}${item.address ? ` — ${escapeHtml(String(item.address))}` : ''}</li>`).join('') : '<li>Кадастровый номер и стоимость — в выписке ЕГРН или на публичной кадастровой карте.</li>';
       results.innerHTML = `
-        <div class="analytics-summary">
-          <div class="metric-card">
-            <span>Нормализованный адрес</span>
-            <strong>${escapeHtml(analytics.normalized || analytics.address)}</strong>
+        <div class="analytics-layout">
+          <div class="analytics-main">
+            <div class="summary-grid">
+              <div class="metric-card">
+                <span>Нормализованный адрес</span>
+                <strong>${escapeHtml(analytics.normalized || analytics.address)}</strong>
+              </div>
+              <div class="metric-card">
+                <span>Координаты</span>
+                <strong>${lat.toFixed(4)}, ${lon.toFixed(4)}</strong>
+              </div>
+              <div class="metric-card">
+                <span>Источники</span>
+                <strong>${(analytics.sources_used || []).join(', ') || 'nominatim'}</strong>
+              </div>
+            </div>
+            <div class="infra-grid">
+              ${renderInfraCard('🚇', 'Метро', analytics.infrastructure?.metro || [])}
+              ${renderInfraCard('🏫', 'Школы', analytics.infrastructure?.schools || [])}
+              ${renderInfraCard('🌳', 'Парки', analytics.infrastructure?.parks || [])}
+              ${renderInfraCard('💊', 'Аптеки', analytics.infrastructure?.pharmacies || [])}
+            </div>
           </div>
-          <div class="metric-card">
-            <span>Координаты</span>
-            <strong>${Number(analytics.coordinates?.lat || 0).toFixed(4)}, ${Number(analytics.coordinates?.lon || 0).toFixed(4)}</strong>
+          <div class="analytics-side">
+            <div class="map-card">
+              <iframe title="Объект на карте" src="${osmMap}" width="100%" height="300" style="border:0;border-radius:12px;" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+              <div class="map-meta">
+                <span>© OpenStreetMap contributors</span>
+                <a href="${osmLink}" target="_blank" rel="noreferrer">Открыть в OSM</a>
+              </div>
+            </div>
+            <div class="finance-card">
+              <div class="finance-strip">
+                <span>USD ${Number(analytics.currency?.usd || 0).toFixed(2)} ₽</span>
+                <span>EUR ${Number(analytics.currency?.eur || 0).toFixed(2)} ₽</span>
+                <span>Ставка ${Number(analytics.mortgage?.key_rate || 16.5).toFixed(1)}%</span>
+              </div>
+              <div class="compact-mortgage">
+                <input id="mortgage-price" type="number" value="15000000" />
+                <input id="mortgage-years" type="number" value="20" />
+                <input id="mortgage-down" type="number" value="20" />
+                <button type="button" class="button primary" id="mortgage-calc">Рассчитать</button>
+                <div id="mortgage-result" class="mortgage-result">Ежемесячно: ${Number(mortgage.monthly || 0).toLocaleString('ru-RU', {maximumFractionDigits: 2})} ₽</div>
+              </div>
+              <div class="cadastre-card">
+                <h3>Кадастровая информация</h3>
+                <ul>${buildingsText}</ul>
+                <a class="button alt" href="https://pkk.rosreestr.ru/" target="_blank" rel="noreferrer">Публичная кадастровая карта</a>
+              </div>
+            </div>
           </div>
-          <div class="metric-card">
-            <span>Источники</span>
-            <strong>${(analytics.sources_used || []).join(', ')}</strong>
-          </div>
-        </div>
-        <div class="infra-grid">
-          ${renderInfraCard('🚇', 'Метро', analytics.infrastructure?.metro || [])}
-          ${renderInfraCard('🏫', 'Школы', analytics.infrastructure?.schools || [])}
-          ${renderInfraCard('🌳', 'Парки', analytics.infrastructure?.parks || [])}
-          ${renderInfraCard('💊', 'Аптеки', analytics.infrastructure?.pharmacies || [])}
-        </div>
-        <div class="currency-grid">
-          <div class="metric-card">
-            <span>USD</span>
-            <strong>${Number(analytics.currency?.usd || 0).toFixed(2)} ₽</strong>
-          </div>
-          <div class="metric-card">
-            <span>EUR</span>
-            <strong>${Number(analytics.currency?.eur || 0).toFixed(2)} ₽</strong>
-          </div>
-          <div class="metric-card">
-            <span>Ключевая ставка</span>
-            <strong>${Number(analytics.mortgage?.key_rate || 16.5).toFixed(1)}%</strong>
-          </div>
-        </div>
-        <div class="calculator-box">
-          <h3>Ипотечный калькулятор</h3>
-          <div class="mortgage-grid">
-            <label><span>Цена</span><input id="mortgage-price" type="number" value="15000000" /></label>
-            <label><span>Срок, лет</span><input id="mortgage-years" type="number" value="20" /></label>
-            <label><span>Первый взнос, %</span><input id="mortgage-down" type="number" value="20" /></label>
-          </div>
-          <button type="button" class="button primary" id="mortgage-calc">Рассчитать</button>
-          <div id="mortgage-result" class="mortgage-result">Ежемесячно: ${Number(mortgage.monthly || 0).toLocaleString('ru-RU', {maximumFractionDigits: 2})} ₽</div>
         </div>
       `;
       const calcBtn = document.querySelector<HTMLButtonElement>('#mortgage-calc');
@@ -115,9 +129,9 @@ function renderInfraCard(icon: string, label: string, items: Array<{ name: strin
   return `
     <div class="metric-card infra-card">
       <span>${icon} ${label}</span>
-      <strong>${items.length}</strong>
+      <strong>${items.length || 0}</strong>
       <div class="infra-list">
-        ${items.length ? items.slice(0, 3).map((item) => `<div>${escapeHtml(item.name)} · ${Math.round(item.distance_m)} м</div>`).join('') : '<div>Нет данных</div>'}
+        ${items.length ? items.slice(0, 3).map((item) => `<div>${escapeHtml(item.name)} · ${Math.round(item.distance_m)} м</div>`).join('') : '<div>Не найдено рядом</div>'}
       </div>
     </div>
   `;
