@@ -28,21 +28,14 @@ type ExtendedWindow = Window & {
 };
 
 const refreshNav = () => {
-  const header = document.querySelector<HTMLElement>('#site-header');
-  const inEl = header?.querySelector<HTMLElement>('.hdr-in');
-  const nav = document.getElementById('main-nav');
-  const burger = document.getElementById('menu-toggle');
+  const hdr = document.querySelector<HTMLElement>('.hdr');
+  const inEl = document.querySelector<HTMLElement>('.hdr-in');
 
-  if (!header || !inEl || !nav || !burger) return;
+  if (!hdr || !inEl) return;
 
-  nav.classList.remove('hidden');
-  burger.hidden = true;
-
+  hdr.classList.remove('compact');
   requestAnimationFrame(() => {
-    if (inEl.scrollWidth > inEl.clientWidth + 1) {
-      nav.classList.add('hidden');
-      burger.hidden = false;
-    }
+    if (inEl.scrollWidth > inEl.clientWidth + 1) hdr.classList.add('compact');
   });
 };
 
@@ -57,9 +50,13 @@ export const refreshHeader = () => {
     ? `<a href="#/catalog">Каталог</a><a href="#/news">Новости</a><a href="#/my">Мои объявления</a>${currentUser.role === 'admin' ? '<a href="#/admin">Админка</a>' : ''}`
     : '<a href="#/catalog">Каталог</a><a href="#/news">Новости</a>';
 
-  const authLinks = isLoggedIn
-    ? `<span class="uname">${escapeHtml(currentUser!.name)}</span><button class="ibtn" id="logout" type="button">Выйти</button>`
-    : '<a href="#/login">Войти</a><a href="#/register">Регистрация</a>';
+  const logoutIcon = `
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <path d="M16 17l5-5-5-5" />
+      <path d="M21 12H9" />
+    </svg>
+  `;
 
   const mobileLinks = `
     <a href="#/catalog">Каталог</a>
@@ -67,6 +64,7 @@ export const refreshHeader = () => {
     ${currentUser ? '<a href="#/my">Мои объявления</a>' : ''}
     ${currentUser && currentUser.role === 'admin' ? '<a href="#/admin">Админка</a>' : ''}
     ${currentUser ? '<a href="#/ad/new">+ Объявление</a>' : '<a href="#/login">Войти</a><a href="#/register">Регистрация</a>'}
+    ${currentUser ? `<span class="mnav-user">${escapeHtml(currentUser.name)}</span>` : ''}
     ${currentUser ? '<button class="mnav-logout" type="button" id="mnav-logout">Выйти</button>' : ''}
   `;
 
@@ -75,11 +73,12 @@ export const refreshHeader = () => {
       <a class="logo" href="#/">Сарафанка</a>
       <nav class="nav" id="main-nav">${navLinks}</nav>
       <div class="acts">
-        ${isLoggedIn ? '<a class="btn btn-sm" href="#/ad/new">+ Объявление</a>' : ''}
-        ${authLinks}
+        <span class="only-wide uname">${isLoggedIn ? escapeHtml(currentUser!.name) : ''}</span>
+        ${isLoggedIn ? '<a class="btn btn-sm only-wide" href="#/ad/new">+ Объявление</a>' : ''}
+        ${isLoggedIn ? `<button class="ibtn only-wide" id="logout" type="button" aria-label="Выйти" title="Выйти">${logoutIcon}</button>` : ''}
         <button class="ibtn" id="theme-toggle" type="button" aria-label="Переключить тему">${document.documentElement.getAttribute('data-theme') === 'dark' ? '☀️' : '🌙'}</button>
         <button class="ibtn" id="search-toggle" type="button" aria-label="Открыть поиск">🔍</button>
-        <button class="ibtn burger" id="menu-toggle" type="button" aria-label="Открыть меню" hidden>☰</button>
+        <button class="ibtn burger" id="menu-toggle" type="button" aria-label="Открыть меню">☰</button>
       </div>
     </div>
     <div class="search-panel" id="search-panel">
@@ -207,6 +206,14 @@ export const refreshHeader = () => {
 
   refreshNav();
 };
+
+let resizeTimer: number | undefined;
+const handleResizeDebounced = () => {
+  if (resizeTimer) window.clearTimeout(resizeTimer);
+  resizeTimer = window.setTimeout(() => refreshNav(), 100);
+};
+
+window.addEventListener('resize', handleResizeDebounced);
 
 export const escapeHtml = (value: string) => value.replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]!));
 export const requireUser = () => { if (!currentUser) { location.hash = '#/login'; return false; } return true; };

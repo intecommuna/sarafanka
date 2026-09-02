@@ -8,6 +8,7 @@
   --accent-sky: #87CEEB;
   --bg: #F0F8FF;
   --surface: rgba(255, 255, 255, 0.7);
+  --surface-solid: #ffffff;
   --text: #2C3E50;
   --text-muted: #7F8C8D;
   --border: rgba(74, 144, 226, 0.2);
@@ -22,6 +23,7 @@
   --primary-dark: #4A90E2;
   --bg: #1A2332;
   --surface: rgba(44, 62, 80, 0.7);
+  --surface-solid: #1e2a3a;
   --text: #ECF0F1;
   --text-muted: #95A5A6;
   --border: rgba(91, 160, 232, 0.3);
@@ -40,6 +42,7 @@ html {
 
 body {
   margin: 0;
+  overflow-x: hidden;
   background: var(--bg);
   background-image:
     radial-gradient(circle at 20% 30%, rgba(74, 144, 226, 0.05) 0%, transparent 50%),
@@ -128,7 +131,7 @@ select:focus-visible {
   box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.12);
 }
 
-/* ===== HEADER v2 ===== */
+/* ===== HEADER v3 ===== */
 .hdr {
   position: sticky;
   top: 0;
@@ -159,7 +162,7 @@ select:focus-visible {
   gap: 4px;
 }
 
-.nav.hidden {
+.hdr.compact .nav {
   display: none;
 }
 
@@ -190,6 +193,18 @@ select:focus-visible {
   min-height: 40px;
 }
 
+.hdr .burger {
+  display: none;
+}
+
+.hdr.compact .burger {
+  display: inline-flex;
+}
+
+.hdr.compact .only-wide {
+  display: none !important;
+}
+
 .ibtn {
   width: 40px;
   height: 40px;
@@ -205,6 +220,16 @@ select:focus-visible {
   background: rgba(74, 144, 226, 0.08);
 }
 
+.ibtn svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .btn-sm {
   padding: 8px 14px;
   font-size: 0.9rem;
@@ -218,6 +243,7 @@ select:focus-visible {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  margin: 0 8px;
 }
 
 .mnav {
@@ -225,8 +251,7 @@ select:focus-visible {
   top: 64px;
   left: 0;
   right: 0;
-  background: var(--surface);
-  backdrop-filter: blur(20px);
+  background: var(--surface-solid);
   border-bottom: 1px solid var(--border);
   display: flex;
   flex-direction: column;
@@ -244,7 +269,8 @@ select:focus-visible {
 }
 
 .mnav a,
-.mnav button {
+.mnav button,
+.mnav .mnav-user {
   text-align: left;
   color: var(--text);
   padding: 12px 24px;
@@ -253,10 +279,20 @@ select:focus-visible {
   font-size: 1rem;
 }
 
+.mnav .mnav-user {
+  color: var(--text-muted);
+  display: block;
+  cursor: default;
+}
+
 .mnav a:hover,
 .mnav button:hover {
   background: rgba(74, 144, 226, 0.1);
   color: var(--primary);
+}
+
+.mnav-logout {
+  color: var(--text);
 }
 
 .search-panel {
@@ -282,6 +318,60 @@ select:focus-visible {
 @media (max-width: 480px) {
   .hdr-in {
     padding: 0 12px;
+    gap: 8px;
+  }
+
+  .logo {
+    font-size: 0.95rem;
+  }
+
+  .acts {
+    gap: 4px;
+  }
+
+  .acts a,
+  .acts button {
+    min-height: 34px;
+  }
+
+  .ibtn {
+    width: 34px;
+    height: 34px;
+    font-size: 1rem;
+  }
+
+  .btn-sm {
+    padding: 6px 10px;
+    font-size: 0.8rem;
+  }
+
+  main {
+    padding: 16px 12px;
+  }
+
+  .hero {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .hero-stat-list {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .hero-stat {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .ad-grid,
+  .ads-grid,
+  .cards-container,
+  main .card:not(:only-child),
+  .category-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 0;
   }
 }
 
