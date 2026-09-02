@@ -19,7 +19,6 @@ type parserListing struct {
 	Rooms     int    `json:"rooms"`
 	Price     int    `json:"price"`
 	Source    string `json:"source"`
-	URL       string `json:"url"`
 	SearchURL string `json:"search_url,omitempty"`
 }
 
@@ -81,7 +80,6 @@ func parserDataset() []parserListing {
 					Rooms:     rooms,
 					Price:     basePrice,
 					Source:    src.name,
-					URL:       "https://example.com/" + src.name + "/" + strconv.Itoa(id),
 					SearchURL: sourceSearchURL(src.name, city, rooms),
 				})
 			}

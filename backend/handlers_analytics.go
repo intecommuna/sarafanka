@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"math"
 	"net/http"
 	"net/url"
@@ -182,23 +183,23 @@ func queryOverpass(lat, lon float64) map[string][]distanceItem {
 		"parks":      {},
 		"pharmacies": {},
 	}
-	query := `[out:json][timeout:25];(
-		node["railway"="station"](around:1000,` + strconv.FormatFloat(lat, 'f', -1, 64) + `,` + strconv.FormatFloat(lon, 'f', -1, 64) + `);
-		way["amenity"="school"](around:1000,` + strconv.FormatFloat(lat, 'f', -1, 64) + `,` + strconv.FormatFloat(lon, 'f', -1, 64) + `);
-		way["leisure"="park"](around:1000,` + strconv.FormatFloat(lat, 'f', -1, 64) + `,` + strconv.FormatFloat(lon, 'f', -1, 64) + `);
-		node["amenity"="pharmacy"](around:1000,` + strconv.FormatFloat(lat, 'f', -1, 64) + `,` + strconv.FormatFloat(lon, 'f', -1, 64) + `);
-	);out center;`
-	body := strings.NewReader("data=" + url.QueryEscape(query))
-	req, err := http.NewRequest(http.MethodPost, "https://overpass-api.de/api/interpreter", body)
-	if err != nil {
-		return result
-	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	resp, err := (&http.Client{Timeout: 20 * time.Second}).Do(req)
+	query := fmt.Sprintf(`[out:json][timeout:25];
+(
+  node["railway"="station"]["station"="subway"](around:1000,%f,%f);
+  node["amenity"="school"](around:1000,%f,%f);
+  node["leisure"="park"](around:1000,%f,%f);
+  node["amenity"="pharmacy"](around:1000,%f,%f);
+);
+out center;`, lat, lon, lat, lon, lat, lon, lat, lon)
+	resp, err := http.PostForm("https://overpass-api.de/api/interpreter", url.Values{"data": {query}})
 	if err != nil || resp == nil {
 		return result
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return result
+	}
+	log.Printf("overpass response count start for lat=%f lon=%f", lat, lon)
 	parsed := struct {
 		Elements []struct {
 			Type   string  `json:"type"`
@@ -214,6 +215,7 @@ func queryOverpass(lat, lon float64) map[string][]distanceItem {
 	if err := json.NewDecoder(resp.Body).Decode(&parsed); err != nil {
 		return result
 	}
+	log.Printf("overpass response count: %d", len(parsed.Elements))
 	for _, el := range parsed.Elements {
 		lat2 := el.Lat
 		lon2 := el.Lon
