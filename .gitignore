@@ -3,6 +3,10 @@ dist/
 .vite/
 *.log
 .env
+*.env
+*.exe
+backend/.env
+backend/sarafanka.exe
 .DS_Store
 backend/bin/
 backend/data/

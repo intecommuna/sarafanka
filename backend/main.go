@@ -1,16 +1,44 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
+	"strings"
 )
 
 type healthResponse struct {
 	Status string `json:"status"`
 }
 
+func loadDotEnv() {
+	for _, path := range []string{".env", "backend/.env"} {
+		file, err := os.Open(path)
+		if err != nil || file == nil {
+			continue
+		}
+		defer file.Close()
+		scanner := bufio.NewScanner(file)
+		for scanner.Scan() {
+			line := strings.TrimSpace(scanner.Text())
+			if line == "" || strings.HasPrefix(line, "#") || !strings.Contains(line, "=") {
+				continue
+			}
+			parts := strings.SplitN(line, "=", 2)
+			key := strings.TrimSpace(parts[0])
+			value := strings.TrimSpace(parts[1])
+			if key == "" || os.Getenv(key) != "" {
+				continue
+			}
+			_ = os.Setenv(key, value)
+		}
+	}
+}
+
 func main() {
+	loadDotEnv()
 	db, err := openDB()
 	if err != nil {
 		log.Fatal(err)
@@ -40,6 +68,9 @@ func main() {
 	mux.Handle("GET /api/admin/users", requireRole(config, "admin", listUsersHandler(db)))
 	mux.Handle("PUT /api/admin/users/{id}/role", requireRole(config, "admin", updateUserRoleHandler(db)))
 	mux.Handle("DELETE /api/admin/users/{id}", requireRole(config, "admin", deleteUserHandler(db)))
+	mux.Handle("GET /api/tools/parser", requireAuth(config, http.HandlerFunc(parserHandler)))
+	mux.Handle("GET /api/tools/analytics", requireAuth(config, http.HandlerFunc(analyticsHandler)))
+	mux.Handle("GET /api/tools/mortgage", requireAuth(config, http.HandlerFunc(mortgageHandler)))
 
 	log.Println("Backend server running on :8080")
 	if err := http.ListenAndServe(":8080", cors(mux)); err != nil {

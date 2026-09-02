@@ -11,6 +11,9 @@ services:
       JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@sarafanka.su}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+      DADATA_API_KEY: ${DADATA_API_KEY}
+      DADATA_SECRET_KEY: ${DADATA_SECRET_KEY}
+      TWOGIS_API_KEY: ${TWOGIS_API_KEY}
 
   frontend:
     build: ./frontend

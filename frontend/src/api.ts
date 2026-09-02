@@ -20,3 +20,6 @@ export const deleteNews = (id: number) => request<void>(`/news/${id}`, { method:
 export const adminUsers = () => request<User[]>('/admin/users');
 export const setUserRole = (id: number, role: string) => request<User>(`/admin/users/${id}/role`, { method: 'PUT', ...body({ role }) });
 export const deleteUser = (id: number) => request<void>(`/admin/users/${id}`, { method: 'DELETE' });
+export const getParserResults = (params: Record<string, string> = {}) => request<{ items: any[]; total: number }>(`/tools/parser?${new URLSearchParams(Object.entries(params).filter(([, value]) => value) as string[][])}`);
+export const getAnalyticsResults = (address: string) => request<{ address: string; normalized: string; coordinates: { lat: number; lon: number }; infrastructure: { metro: any[]; schools: any[]; parks: any[]; pharmacies: any[] }; currency: { usd: number; eur: number }; mortgage: { key_rate: number }; buildings: any[]; sources_used: string[] }>(`/tools/analytics?address=${encodeURIComponent(address)}`);
+export const getMortgageQuote = (price: number, years: number, down: number) => request<{ monthly: number; total: number; overpay: number }>(`/tools/mortgage?price=${price}&years=${years}&down=${down}`);

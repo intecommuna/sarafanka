@@ -8,6 +8,8 @@ import { renderHome } from './pages/home';
 import { bindAuth, renderLogin, renderRegister } from './pages/auth';
 import { bindMy, renderMy } from './pages/my';
 import { bindNewsForm, bindNewsItem, renderNews, renderNewsForm, renderNewsItem } from './pages/news';
+import { bindAnalytics, renderAnalytics } from './analytics';
+import { bindTools, renderTools } from './tools';
 
 export type SessionUser = { id: number; email: string; name: string; role: string; created_at: string };
 export let currentUser: SessionUser | null = null;
@@ -19,7 +21,7 @@ const applyTheme = (theme: string) => { document.documentElement.setAttribute('d
 const app = document.querySelector<HTMLElement>('#app')!;
 const render = (page: () => Promise<string> | string) => {
   app.innerHTML = '<div class="loading">Загрузка...</div>';
-  Promise.resolve(page()).then((html) => { app.innerHTML = html; const hash = location.hash; if (hash.includes('/catalog')) bindCatalog(); if (hash.match(/^#\/ads\/\d+$/)) bindAd(Number(hash.split('/')[2])); if (hash === '#/ad/new') bindAdForm(); if (hash.includes('/ad/') && hash.includes('/edit')) bindAdForm(Number(hash.split('/')[2])); if (hash === '#/my') bindMy(); if (hash.match(/^#\/news\/\d+$/)) bindNewsItem(Number(hash.split('/')[2])); if (hash.includes('/news/new')) bindNewsForm(); if (hash.includes('/news/') && hash.includes('/edit')) bindNewsForm(Number(hash.split('/')[2])); if (hash === '#/login') bindAuth('login'); if (hash === '#/register') bindAuth('register'); });
+  Promise.resolve(page()).then((html) => { app.innerHTML = html; const hash = location.hash; if (hash.includes('/catalog')) bindCatalog(); if (hash.match(/^#\/ads\/\d+$/)) bindAd(Number(hash.split('/')[2])); if (hash === '#/ad/new') bindAdForm(); if (hash.includes('/ad/') && hash.includes('/edit')) bindAdForm(Number(hash.split('/')[2])); if (hash === '#/my') bindMy(); if (hash.match(/^#\/news\/\d+$/)) bindNewsItem(Number(hash.split('/')[2])); if (hash.includes('/news/new')) bindNewsForm(); if (hash.includes('/news/') && hash.includes('/edit')) bindNewsForm(Number(hash.split('/')[2])); if (hash === '#/login') bindAuth('login'); if (hash === '#/register') bindAuth('register'); if (hash === '#/tools') bindTools(); if (hash.startsWith('#/tools/analytics')) bindAnalytics(); });
 };
 
 type ExtendedWindow = Window & {
@@ -47,8 +49,8 @@ export const refreshHeader = () => {
 
   const isLoggedIn = Boolean(currentUser);
   const navLinks = currentUser
-    ? `<a href="#/catalog">Каталог</a><a href="#/news">Новости</a><a href="#/my">Мои объявления</a>${currentUser.role === 'admin' ? '<a href="#/admin">Админка</a>' : ''}`
-    : '<a href="#/catalog">Каталог</a><a href="#/news">Новости</a>';
+    ? `<a href="#/catalog">Каталог</a><a href="#/news">Новости</a><a href="#/tools">Инструменты</a><a href="#/my">Мои объявления</a>${currentUser.role === 'admin' ? '<a href="#/admin">Админка</a>' : ''}`
+    : '<a href="#/catalog">Каталог</a><a href="#/news">Новости</a><a href="#/tools">Инструменты</a>';
 
   const logoutIcon = `
     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -61,6 +63,7 @@ export const refreshHeader = () => {
   const mobileLinks = `
     <a href="#/catalog">Каталог</a>
     <a href="#/news">Новости</a>
+    <a href="#/tools">Инструменты</a>
     ${currentUser ? '<a href="#/my">Мои объявления</a>' : ''}
     ${currentUser && currentUser.role === 'admin' ? '<a href="#/admin">Админка</a>' : ''}
     ${currentUser ? '<a href="#/ad/new">+ Объявление</a>' : '<a href="#/login">Войти</a><a href="#/register">Регистрация</a>'}
@@ -220,5 +223,37 @@ export const requireUser = () => { if (!currentUser) { location.hash = '#/login'
 export const canEdit = (ownerId: number) => Boolean(currentUser && (currentUser.id === ownerId || ['moderator', 'admin'].includes(currentUser.role)));
 
 refreshHeader();
-initRouter({ '/': () => render(renderHome), '/catalog': (params) => render(() => renderCatalog(params)), '/catalog/category/:slug': ({ slug }) => render(() => renderCatalog({ type: 'product', category: slug })), '/catalog/services': () => render(() => renderCatalog({ type: 'service' })), '/catalog/services/:slug': ({ slug }) => render(() => renderCatalog({ type: 'service', category: slug })), '/ads/:id': ({ id }) => render(() => renderAd(Number(id))), '/ad/new': () => render(renderAdForm), '/ad/:id/edit': ({ id }) => render(() => renderAdForm(Number(id))), '/news': () => render(renderNews), '/news/new': () => render(renderNewsForm), '/news/:id': ({ id }) => render(() => renderNewsItem(Number(id))), '/news/:id/edit': ({ id }) => render(() => renderNewsForm(Number(id))), '/login': () => render(renderLogin), '/register': () => render(renderRegister), '/my': () => render(renderMy), '/admin': () => render(renderAdmin) });
-if (localStorage.getItem('token')) me().then((user) => { currentUser = user; refreshHeader(); }).catch(() => { localStorage.removeItem('token'); });
+initRouter({
+  '/': () => render(renderHome),
+  '/catalog': (params) => render(() => renderCatalog(params)),
+  '/catalog/category/:slug': ({ slug }) => render(() => renderCatalog({ type: 'product', category: slug })),
+  '/catalog/services': () => render(() => renderCatalog({ type: 'service' })),
+  '/catalog/services/:slug': ({ slug }) => render(() => renderCatalog({ type: 'service', category: slug })),
+  '/ads/:id': ({ id }) => render(() => renderAd(Number(id))),
+  '/ad/new': () => render(renderAdForm),
+  '/ad/:id/edit': ({ id }) => render(() => renderAdForm(Number(id))),
+  '/news': () => render(renderNews),
+  '/news/new': () => render(renderNewsForm),
+  '/news/:id': ({ id }) => render(() => renderNewsItem(Number(id))),
+  '/news/:id/edit': ({ id }) => render(() => renderNewsForm(Number(id))),
+  '/login': () => render(renderLogin),
+  '/register': () => render(renderRegister),
+  '/my': () => render(renderMy),
+  '/admin': () => render(renderAdmin),
+  '/tools': () => render(() => {
+    if (!requireUser()) return '';
+    return renderTools();
+  }),
+  '/tools/parser': () => render(() => {
+    if (!requireUser()) return '';
+    return renderTools();
+  }),
+  '/tools/analytics': () => render(() => {
+    if (!requireUser()) return '';
+    return renderAnalytics();
+  })
+});
+if (localStorage.getItem('token')) me().then((user) => { currentUser = user; refreshHeader(); }).catch(() => { localStorage.removeItem('token'); });  const toolRoute = location.hash.startsWith('#/tools');
+  if (toolRoute && !currentUser) {
+    location.hash = '#/login';
+  }
